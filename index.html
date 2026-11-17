@@ -6,6 +6,7 @@
 <title>Top 25 Cigars of 2026</title>
 <meta name="description" content="Concept prototype: the Cigar Aficionado Top 25 Cigars of 2026 release experience.">
 <meta name="theme-color" content="#0f0b08">
+<link rel="preload" as="image" href="assets/tube-poster.webp" media="(min-width: 761px)" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -38,44 +39,49 @@
 <main>
   <!-- HERO -->
   <section class="hero" id="hero">
-    <video class="hero-video" id="heroVideo" autoplay muted loop playsinline preload="auto" poster="assets/hero-poster.jpg" aria-hidden="true"><source src="assets/hero.mp4" type="video/mp4"></video>
-    <div class="hero-veil" aria-hidden="true"></div>
-    <div class="wrap hero-in">
-      <div class="hero-copy">
-        <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span><span id="heroEyebrow">Reveal week · December 14–18</span></p>
-        <h1>The Top <span class="n25">25</span> Cigars <span class="of">of</span> 2026</h1>
-        <p class="lede">Every year our editors go back to the highest-scoring cigars, buy them again and smoke them blind. Twenty-five make the list. One becomes Cigar of the Year.</p>
-        <div class="hero-cta">
-          <a class="btn btn-ember" href="#list">See what's been revealed</a>
-          <button class="btn btn-ghost" id="icsBtn" type="button">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm7 7v5m-2.5-2.5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            Add reveal dates to calendar
-          </button>
+    <div class="hero-pin" id="heroPin">
+      <video class="hero-video" id="heroVideo" autoplay muted loop playsinline preload="metadata" poster="assets/hero-poster.jpg" aria-hidden="true"><source src="assets/hero.mp4" type="video/mp4"></video>
+      <div class="hero-veil" aria-hidden="true"></div>
+      <div class="hero-stage" id="heroStage" aria-hidden="true"><picture><source media="(max-width: 760px)" srcset="assets/tube-poster-m.webp"><img class="poster" src="assets/tube-poster.webp" alt="" width="1440" height="836" fetchpriority="high"></picture></div>
+
+      <div class="wrap hero-in" id="heroCopy">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span><span id="heroEyebrow">Reveal week · December 14–18</span></p>
+          <h1>The Top <span class="n25">25</span> Cigars <span class="of">of</span> 2026</h1>
+          <p class="lede">Every year our editors go back to the highest-scoring cigars, buy them again and smoke them blind. Twenty-five make the list. One becomes Cigar of the Year.</p>
+          <div class="hero-cta">
+            <a class="btn btn-ember" href="#list">Open the humidor</a>
+            <button class="btn btn-ghost" id="icsBtn" type="button">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm7 7v5m-2.5-2.5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Add reveal dates
+            </button>
+          </div>
+          <aside class="clock" aria-label="Next reveal">
+            <div class="clock-txt">
+              <p class="clock-k" id="clockKicker">Next reveal</p>
+              <p class="clock-title" id="clockTitle"></p>
+              <p class="clock-when" id="clockWhen"></p>
+            </div>
+            <div class="clock-digits" id="clockDigits" role="timer" aria-live="off">
+              <div><b id="cdD">00</b><span>days</span></div>
+              <div><b id="cdH">00</b><span>hrs</span></div>
+              <div><b id="cdM">00</b><span>min</span></div>
+              <div><b id="cdS">00</b><span>sec</span></div>
+            </div>
+            <p class="clock-sponsor">Presented by <span class="slot">Sponsor slot</span></p>
+          </aside>
         </div>
       </div>
 
-      <aside class="clock" aria-label="Next reveal">
-        <p class="clock-k" id="clockKicker">Next reveal</p>
-        <p class="clock-title" id="clockTitle"></p>
-        <p class="clock-when" id="clockWhen"></p>
-        <div class="clock-digits" id="clockDigits" role="timer" aria-live="off">
-          <div><b id="cdD">00</b><span>days</span></div>
-          <div><b id="cdH">00</b><span>hours</span></div>
-          <div><b id="cdM">00</b><span>min</span></div>
-          <div><b id="cdS">00</b><span>sec</span></div>
+      <div class="wrap hero-collection" id="heroCollection">
+        <p class="kicker">The Collector's Humidor</p>
+        <h2 class="hc-title">Twenty-five places. <em><span id="revCount">0</span> open.</em></h2>
+        <div class="ladder" aria-label="Reveal progress">
+          <ol class="ladder-ticks" id="ladder"></ol>
+          <p class="ladder-hint">Choose a number to jump to it</p>
         </div>
-        <p class="clock-sponsor">Presented by <span class="slot">Sponsor slot</span></p>
-      </aside>
-    </div>
-
-    <div class="wrap">
-      <div class="ladder" aria-label="Reveal progress">
-        <div class="ladder-head">
-          <p><b id="revCount">0</b> of 25 revealed</p>
-          <p class="ladder-hint">Tap a number to jump to it</p>
-        </div>
-        <ol class="ladder-ticks" id="ladder"></ol>
       </div>
+      <p class="scroll-cue" id="scrollCue" aria-hidden="true"><span></span>Scroll to open</p>
     </div>
   </section>
 
@@ -233,11 +239,15 @@
   <div class="drawer-in" id="humidorIn"></div>
 </dialog>
 
-<!-- CIGAR OF THE YEAR TAKEOVER -->
-<div class="takeover" id="takeover" hidden>
-  <video class="take-video" id="takeVideo" muted playsinline preload="auto" aria-hidden="true"><source src="assets/reveal.mp4" type="video/mp4"></video>
-  <canvas id="sparks" aria-hidden="true"></canvas>
+<!-- CIGAR OF THE YEAR REVEAL -->
+<div class="takeover" id="takeover" hidden role="dialog" aria-modal="true" aria-label="Cigar of the Year reveal">
+  <div class="take-light" aria-hidden="true"></div>
+  <div class="take-stage" id="takeStage" aria-hidden="true"></div>
   <div class="takeover-in" id="takeoverIn"></div>
+  <div class="take-ctl">
+    <button class="chip" id="takeSkip" type="button">Skip</button>
+    <button class="chip" id="takeReplay" type="button" hidden>Replay</button>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -254,7 +264,6 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" async onload="window.dispatchEvent(new Event('three-ready'))"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

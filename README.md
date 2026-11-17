@@ -11,20 +11,12 @@ python3 -m http.server 8080   # then open http://localhost:8080
 `python3 build-standalone.py` writes `top25-standalone.html`: the same page in one
 file with the images inlined, for emailing or opening offline.
 
-## What it uses
+## Pages
 
-- **Look:** dark and bold, one heavy typeface, one yellow. Real photographs only, cut out of their backgrounds (`tools/cutouts.py`), each with a light that follows the pointer or the scroll.
-- **Scroll sequences:** the hero procession and the winner's turn are driven by scroll position; the page scrolls natively.
-- **The winner's turn:** `assets/spin1/` is a 63-frame sequence rendered with Runway from the one photograph.
-- **3D:** `stage3d.js` and three.js r160 (in `vendor/`) load only when someone presses "Turn it in 3D".
+- **`/`** (`index.html`, `editorial.css`, `editorial.js`): the editorial version. All 25 cigars, a detail view for each, and a Cigar of the Year reveal that can be replayed.
+- **`/dark.html`** (`app.js`, `styles.css`): the earlier dark version, kept for comparison. It still has the reveal-week simulator (`?stage=0`–`5`), charts and grid view.
 
-`docs/UPGRADE-NOTES.md` covers the direction, the checks that were run and the missing assets. `tools/capture.js` regenerates `docs/media/`.
-
-## Presenting it
-
-The pill at the bottom simulates reveal week: Before, Mon, Tue, Wed, No. 1,
-Full list, or "Play the week". `?stage=0`–`5` opens at a given stage; `?no3d` forces the static fallbacks. Moving to
-"No. 1" plays the Cigar of the Year reveal.
+`docs/UPGRADE-NOTES.md` covers the design decisions, the checks that were run and the missing assets.
 
 ## What is placeholder
 

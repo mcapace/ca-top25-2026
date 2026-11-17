@@ -3,27 +3,39 @@
 The current state of the prototype, how it was checked, and what is still missing.
 Screenshots and a recording are in `docs/media/`.
 
-## Editorial study (in review)
+## Current version: editorial, full list
 
-`study.html` is a separate page that establishes the next visual system before it is applied
-to the whole site: a hero, one ranking row and one detail view. The live page is unchanged.
+`index.html` (with `editorial.css` and `editorial.js`) is the main page. Because the content
+is last year's published list, it shows all 25 cigars with no sealed states and no reveal-week
+simulator. The earlier dark version is kept at `dark.html`, with the simulator, for comparison.
 
 - **Identity.** Warm white, deep ink, tobacco brown (#4a1b00) and rust (#963700). The last two
   are taken from cigaraficionado.com's own stylesheet. The masthead is the CA logo. Headlines
   and reading text are Newsreader; navigation and specifications are Inter.
-- **No labels above headings.** Rank, score and release times sit beneath a title or beside
-  the action they belong to.
+- **No labels above headings.** Rank and score sit beneath a title or beside the action they
+  belong to.
 - **One transformation.** The hero cigar is a single element that travels, as the page scrolls,
   to its place in the Cigar of the Year section and stays there. Nothing is pinned.
-- **Light.** A small WebGL shader draws the photograph with a light that follows the pointer
-  (or the scroll on touch). The cutout gives the edge, the silhouette gives a round surface,
-  and the photographed shadow is kept. Without WebGL the plain photograph is shown.
-- **Inspection.** The detail view opens on a table with the cigar drawn to scale against an
-  inch ruler, zoom to 300%, drag and keyboard movement, and a second view of the band.
-- **Photography limits.** The source photographs are 800 × 200 pixels. The two used in the
-  study were enlarged 2× with Runway's precision upscaler, which kept the band artwork and
-  wrapper intact on inspection; this is a stand-in. The AI-rendered turn is not used in the
-  study, because it is not an authentic turntable.
+- **The list.** All 25, each drawn to the same scale, with search, country filter, four orders
+  and a saved-only view. Dollar and pound prices are never ranked against each other.
+- **Detail.** Every cigar opens on an inspection table: drawn to scale against an inch ruler,
+  zoom to 300%, drag and keyboard movement, and a view of the band. Then the review.
+- **Reveal.** "Replay the reveal" in the hero and in the Cigar of the Year section plays a
+  4.8-second sequence: the room is dark, a light travels along the cigar while the page comes
+  up to its own paper, then the name and a counting score. Skip, Replay and Close are always
+  available; reduced motion opens on the final frame. `#reveal` or `?reveal` plays it on load.
+- **Light.** A small WebGL shader draws each large photograph with a light that follows the
+  pointer (or the scroll on touch). Without WebGL the plain photograph is shown.
+- **Photography limits.** The source photographs are 800 × 200 pixels. Nos. 1 and 2 were
+  enlarged 2× with Runway's precision upscaler as stand-ins; the other 23 use the standard
+  set and are softer on the inspection table. The AI-rendered turn is not used on this page.
+
+Not yet carried into this version: the charts, the film strip, the grid view, and the sealed
+states and schedule needed for a real reveal week. Those still exist in `dark.html`.
+
+Screenshots and a recording are in `docs/editorial/`; `tools/capture-editorial.js` regenerates them.
+
+The sections below describe `dark.html`.
 
 ## Direction
 

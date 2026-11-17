@@ -479,7 +479,7 @@
     el.dataset.ph = t < 0.15 ? 0 : t < 1.0 ? 1 : t < 3.5 ? 2 : t < 4.0 ? 3 : t < 4.5 ? 4 : 5;
     el.style.setProperty("--w", ease(1.0, 1.75, t));                       // the room goes from black to white
     const turn = ease(1.5, 3.7, t);
-    if (sp) { const deg = sp.max * (1 - turn), i = Math.round(((deg - sp.min) / (sp.max - sp.min)) * (sp.frames - 1)); const src = spinSrc(sp, i); if (img.getAttribute("src") !== src) img.src = src; }
+    if (sp) { const deg = sp.max * (1 - turn), i = Math.round(((deg - sp.min) / (sp.max - sp.min)) * (sp.frames - 1)); showSpin(img, sp, i, t >= TAKE_END || t === 0); }
     else img.style.clipPath = `inset(0 ${(1 - turn) * 100}% 0 0)`;
     img.style.opacity = ease(1.45, 1.9, t); img.style.transform = `scale(${1.1 - 0.1 * turn})`;
     $("takeScore").textContent = Math.round(c.score - 9 + 9 * (1 - Math.pow(1 - clamp01((t - 4.0) / 0.8), 3)));
@@ -691,8 +691,10 @@
     $("scrollCue").style.opacity = 1 - ease(0.02, 0.1, heroP);
   }
   const spinSrc = (sp, i) => `${sp.dir}/${String(i).padStart(2, "0")}.webp`;
-  let spinLoaded = false;
-  function preloadSpin() { const sp = BY_RANK.get(1).spin; if (!sp || spinLoaded || reduced) return; spinLoaded = true; for (let i = 0; i < sp.frames; i++) new Image().src = spinSrc(sp, i); }
+  const spinImgs = [];
+  function preloadSpin() { const sp = BY_RANK.get(1).spin; if (!sp || spinImgs.length || reduced) return; for (let i = 0; i < sp.frames; i++) { const im = new Image(); im.src = spinSrc(sp, i); spinImgs.push(im); } }
+  // Show a frame only once it has downloaded, so a slow connection holds the last good frame instead of flashing.
+  function showSpin(img, sp, i, force) { const src = spinSrc(sp, i); if (img.getAttribute("src") === src) return; if (force || (spinImgs[i] && spinImgs[i].complete && spinImgs[i].naturalWidth)) img.src = src; }
   function cotyScroll() {
     const track = $("cotyTurn"), img = $("cotyImg"), sp = BY_RANK.get(1).spin;
     if (!track || !img) return;
@@ -701,8 +703,8 @@
     if (!fx) return;
     const r = track.getBoundingClientRect(), travel = r.height - track.firstElementChild.offsetHeight;
     const p = travel > 0 ? clamp01((headerH() - r.top) / travel) : 1;
-    const deg = sp.max * (1 - ease(0.04, 0.9, p)), i = Math.round(((deg - sp.min) / (sp.max - sp.min)) * (sp.frames - 1)), src = spinSrc(sp, i);
-    if (img.getAttribute("src") !== src) img.src = src;
+    const deg = sp.max * (1 - ease(0.04, 0.9, p)), i = Math.round(((deg - sp.min) / (sp.max - sp.min)) * (sp.frames - 1));
+    showSpin(img, sp, i, p >= 1);
   }
   let scrollQueued = false;
   const onScroll = () => { if (scrollQueued) return; scrollQueued = true; requestAnimationFrame(() => { scrollQueued = false; heroScroll(); cotyScroll(); }); };

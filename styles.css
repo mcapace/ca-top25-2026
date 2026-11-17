@@ -519,3 +519,103 @@ section { position: relative; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
 }
+
+/* =====================================================================
+   Glass, depth and film. The whole page sits over one fixed WebGL smoke
+   field, so every frosted surface has something moving behind it.
+   ===================================================================== */
+#smoke { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -2; opacity: 1; pointer-events: none; }
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 50% at 85% 10%, rgba(232,100,42,.10), transparent 70%), radial-gradient(50% 45% at 5% 90%, rgba(201,164,94,.09), transparent 70%);
+}
+.hero { overflow: hidden; }
+.hero-video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 50%; z-index: -2;
+  mix-blend-mode: screen; opacity: .92;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 96%); mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 96%);
+}
+.hero-veil { background: linear-gradient(90deg, rgba(15,11,8,.78) 0%, rgba(15,11,8,.35) 48%, rgba(15,11,8,0) 75%), linear-gradient(180deg, rgba(15,11,8,.2) 0%, rgba(15,11,8,0) 40%, rgba(15,11,8,.55) 100%); }
+@media (max-width: 939px) { .hero-veil { background: linear-gradient(180deg, rgba(15,11,8,.55) 0%, rgba(15,11,8,.72) 55%, rgba(15,11,8,.8) 100%); } }
+
+.top, .clock, .sched li, .stat, .chart, .mcard, .sealed, .search, .sort, .chip, .humidor-btn, .adslot, .archive a, .ladder-ticks button, .coty-sealed, .clock-digits div {
+  background: linear-gradient(145deg, rgba(255,238,214,.11), rgba(255,238,214,.03) 42%, rgba(255,238,214,.07));
+  border-color: rgba(255,232,204,.17);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -1px 0 rgba(0,0,0,.25), 0 24px 50px -30px rgba(0,0,0,.95);
+}
+.top { background: linear-gradient(180deg, rgba(20,14,10,.72), rgba(20,14,10,.48)); border-color: transparent; border-bottom-color: rgba(255,232,204,.12); box-shadow: inset 0 -1px 0 rgba(255,255,255,.04); }
+.clock { border-color: rgba(201,164,94,.42); border-radius: 24px; position: relative; overflow: hidden; }
+.clock::before, .coty-sealed::before, .chart::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(115deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 72%, rgba(255,200,150,.07) 100%);
+}
+.chart { position: relative; }
+.clock-digits div { box-shadow: inset 0 1px 0 rgba(255,255,255,.1); background: rgba(0,0,0,.28); }
+.sched .is-open { background: linear-gradient(145deg, rgba(244,236,221,.96), rgba(228,214,187,.9)); border-color: rgba(255,255,255,.6); }
+.sched .is-next { background: linear-gradient(150deg, rgba(232,100,42,.34), rgba(255,238,214,.05) 70%); border-color: rgba(255,150,90,.75); }
+.chip[aria-pressed="true"] { background: var(--cream); border-color: var(--cream); }
+.ladder-ticks .on { background: linear-gradient(180deg, #fbf5e8, var(--paper-2)); border-color: rgba(255,255,255,.7); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ladder-ticks .on.coty { background: linear-gradient(180deg, #d53a44, var(--red)); border-color: #e0606a; }
+.ladder-ticks .next { border-color: var(--ember); box-shadow: inset 0 0 16px -2px rgba(232,100,42,.8), 0 0 18px -6px rgba(232,100,42,.9); }
+.coty-sealed { background: linear-gradient(150deg, rgba(120,60,30,.34), rgba(255,238,214,.04) 55%, rgba(201,164,94,.10)); border-color: rgba(201,164,94,.45); }
+.sealed { background: linear-gradient(150deg, rgba(90,52,30,.30), rgba(255,238,214,.03) 60%); }
+.sealed.is-next { border-color: rgba(255,150,90,.7); }
+.tile { background: linear-gradient(180deg, rgba(255,226,180,.16), rgba(255,226,180,.04)); border-color: rgba(201,164,94,.4); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
+.sim { background: linear-gradient(145deg, rgba(255,246,230,.82), rgba(244,236,221,.66)); -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6); box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 18px 50px -12px #000, 0 0 0 1px rgba(255,255,255,.25); }
+.drawer::backdrop { background: rgba(8,5,3,.5); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
+.clip-meta { inset: auto 8px 8px 8px; padding: 12px; border-radius: 12px; background: rgba(15,11,8,.42); border: 1px solid rgba(255,232,204,.16); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); }
+.clip::after { background: linear-gradient(180deg, rgba(15,11,8,0) 55%, rgba(15,11,8,.5) 100%); }
+.toast { background: rgba(244,236,221,.86); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: inset 0 1px 0 #fff, 0 16px 40px -12px #000; }
+
+/* ---------- 3D sealed cigar ---------- */
+.seal3d { position: relative; justify-self: center; width: min(470px, 82vw); aspect-ratio: 5 / 4; cursor: grab; touch-action: pan-y; display: grid; place-items: center; }
+.seal3d:active { cursor: grabbing; }
+.seal3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.seal3d.on .seal { display: none; }
+.seal3d::after { content: ""; position: absolute; left: 12%; right: 12%; bottom: 9%; height: 26px; border-radius: 50%; background: radial-gradient(closest-side, rgba(232,100,42,.35), transparent); filter: blur(10px); pointer-events: none; }
+.seal3d small { position: absolute; bottom: -2px; left: 0; right: 0; text-align: center; font: 500 10px/1 var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--smoke); opacity: 0; transition: opacity .4s; }
+.seal3d.on small { opacity: .8; }
+
+/* ---------- reveals ---------- */
+.rows { perspective: 1600px; }
+.row.fresh { animation: flipIn 1.15s cubic-bezier(.16,.8,.24,1) both; animation-delay: calc(var(--i, 0) * 170ms); transform-origin: 50% 0%; backface-visibility: hidden; }
+.row.fresh::after { animation-duration: 1s; animation-delay: calc(var(--i, 0) * 170ms + 380ms); width: 90px; }
+@keyframes flipIn {
+  0% { transform: rotateX(-92deg) translateZ(-40px); opacity: 0; filter: brightness(.25) saturate(.4); box-shadow: 0 0 0 0 rgba(232,100,42,0); }
+  45% { opacity: 1; filter: brightness(.8) saturate(.9); box-shadow: 0 0 60px 4px rgba(232,100,42,.5); }
+  72% { transform: rotateX(7deg); filter: none; }
+  100% { transform: none; box-shadow: 0 0 0 0 rgba(232,100,42,0); }
+}
+.ladder-ticks .pop { animation: tickPop .7s var(--ease) both; animation-delay: calc(var(--i, 0) * 110ms); }
+@keyframes tickPop { 0% { transform: translateY(0) scale(1); } 40% { transform: translateY(-14px) scale(1.12); box-shadow: 0 0 26px 2px rgba(255,177,105,.9); } 100% { transform: none; } }
+.flash { position: fixed; inset: 0; z-index: 85; pointer-events: none; overflow: hidden; }
+.flash::before { content: ""; position: absolute; left: -10%; right: -10%; top: 0; height: 34vh; transform: translateY(-110%);
+  background: linear-gradient(180deg, transparent, rgba(232,100,42,.0) 20%, rgba(232,100,42,.28) 78%, rgba(255,214,160,.85) 97%, transparent);
+  filter: blur(6px); animation: flashDown 1.15s cubic-bezier(.5,0,.3,1) both; }
+@keyframes flashDown { to { transform: translateY(330%); } }
+
+.takeover { background: #060403; perspective: 1400px; }
+.take-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: filmIn 1.4s .1s both; }
+@keyframes filmIn { from { opacity: 0; transform: scale(1.08); } to { opacity: .9; transform: none; } }
+.takeover::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(70% 60% at 50% 50%, rgba(6,4,3,.15), rgba(6,4,3,.82) 85%), linear-gradient(180deg, rgba(6,4,3,.3), rgba(6,4,3,.0) 30%, rgba(6,4,3,.75)); }
+.takeover-in, #sparks { z-index: 1; }
+.takeover-in { transform-style: preserve-3d; }
+.takeover .paper { position: relative; padding: 0; overflow: hidden; border-radius: 18px; animation: paperIn 1.5s .5s cubic-bezier(.16,.8,.24,1) both; box-shadow: 0 40px 90px -30px #000, 0 0 90px -20px rgba(232,100,42,.55); transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .25s ease-out; will-change: transform; }
+.takeover .paper.gl { background: #17100b; }
+.takeover .paper.gl img { visibility: hidden; }
+.takeover .paper:not(.gl) img { animation: burnIn 1.8s 1.2s var(--ease) both; }
+.takeover .paper canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+@keyframes paperIn { from { opacity: 0; transform: translateZ(-900px) rotateX(38deg) rotateY(-14deg); } to { opacity: 1; transform: none; } }
+.takeover h2 { animation: none; }
+.takeover h2 span { display: inline-block; animation: wordUp .9s cubic-bezier(.16,.8,.24,1) both; animation-delay: calc(3s + var(--w) * 110ms); }
+@keyframes wordUp { from { opacity: 0; transform: translateY(.7em) rotateX(-70deg); filter: blur(6px); } }
+.takeover .meta { animation-delay: 3.6s; }
+.takeover .btns { animation-delay: 4s; }
+.takeover .meta, .takeover .btns { position: relative; }
+.takeover .btn-ghost { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); background: rgba(255,238,214,.08); }
+.coty-photo img { transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(var(--s, 1)); transition: transform .3s ease-out; filter: drop-shadow(0 26px 22px rgba(60,30,10,.28)); }
+.coty-photo:hover img { transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(1.04); }
+.coty-open.fresh-coty { animation: flipIn 1.2s cubic-bezier(.16,.8,.24,1) both; transform-origin: 50% 0; }
+.coty { perspective: 1800px; }
+@media (prefers-reduced-motion: reduce) { .hero-video, .take-video { display: none; } }

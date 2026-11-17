@@ -82,7 +82,7 @@
     }
     $("ladder").innerHTML = Array.from({ length: 25 }, (_, i) => 25 - i).map((rank) => {
       const on = isOpen(rank), nx = !on && RELEASE_OF.get(rank) === state.stage;
-      return `<li><button type="button" data-jump="${rank}" class="${on ? "on" : ""}${on && rank === 1 ? " coty" : ""}${nx ? " next" : ""}" aria-label="No. ${rank}, ${on ? "revealed" : "sealed"}">${rank}</button></li>`;
+      return `<li><button type="button" data-jump="${rank}" class="${on ? "on" : ""}${on && rank === 1 ? " coty" : ""}${nx ? " next" : ""}${state.fresh.has(rank) ? " pop" : ""}" style="--i:${state.fresh.has(rank) ? [...state.fresh].sort((a, b) => b - a).indexOf(rank) : 0}" aria-label="No. ${rank}, ${on ? "revealed" : "sealed"}">${rank}</button></li>`;
     }).join("");
   }
 
@@ -107,7 +107,7 @@
       const r = RELEASES[3];
       el.innerHTML = `<div class="coty-sealed">
         <div>
-          <p class="kicker">No. 1 · Sealed</p>
+          <p class="kicker">No. 1 · Sealed in glass</p>
           <h2 id="cotyH">Cigar of the Year <em>2026</em></h2>
           <p class="when">Opens <b>${r.day}</b> at <b>${TIME}</b>${state.stage <= 3 ? ` · in <b data-cd="3"></b>` : ""}</p>
           <div class="poll">
@@ -116,8 +116,9 @@
             <small id="pollMsg">${state.pick ? `Your call: ${state.pick}. We'll tell you how you did on Thursday.` : "Pick one. We'll tell you how you did when it opens."}</small>
           </div>
         </div>
-        <div class="seal" aria-hidden="true"><div><b>1</b><span>Cigar of the Year<br>Sealed</span></div></div>
+        <div class="seal3d" id="seal3d" aria-hidden="true"><div class="seal"><div><b>1</b><span>Cigar of the Year<br>Sealed</span></div></div><small>Sealed in glass · drag to turn</small></div>
       </div>`;
+      mount3d();
       return;
     }
     const called = state.pick ? (state.pick === c.country ? `You called it: ${c.country}.` : `You picked ${state.pick}. It went to ${c.country}.`) : "";
@@ -336,17 +337,66 @@
   }
 
   /* ---------- takeover ---------- */
-  let sparkRaf;
+  let sparkRaf, burnRaf, countRaf;
+  function burnReveal(paper, img) {
+    // Dissolves a dark sealed card into the cigar photo along a noisy, glowing burn line.
+    const cv = document.createElement("canvas"), gl = cv.getContext("webgl", { antialias: false, premultipliedAlpha: false });
+    if (!gl || reduced) return;
+    const vs = "attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}";
+    const fs = `precision mediump float;uniform sampler2D img;uniform float p;uniform vec2 r;varying vec2 uv;
+      float h(vec2 q){return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453);}
+      float n(vec2 q){vec2 i=floor(q),f=fract(q);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}
+      float fbm(vec2 q){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n(q);q=q*2.1+vec2(3.1,7.7);a*=.5;}return s;}
+      void main(){float asp=r.x/r.y;vec3 paper=vec3(.937,.894,.812);vec3 shown=paper*texture2D(img,uv).rgb;
+        vec2 q=(uv-.5)*vec2(asp,1.);float d=length(q)/(.5*length(vec2(asp,1.)));
+        float nz=fbm(uv*vec2(asp,1.)*5.);float f=d*.7+nz*.5;float e=p*1.4-.12;
+        float m=smoothstep(e,e-.025,f);float glow=smoothstep(e+.1,e,f)*(1.-m);
+        vec3 sealed=mix(vec3(.075,.05,.035),vec3(.16,.10,.065),nz)+vec3(.5,.2,.05)*smoothstep(e+.35,e,f)*.25;
+        vec3 c=mix(sealed,shown,m);float ch=smoothstep(e-.09,e-.025,f)*m;c=mix(c,c*vec3(.3,.18,.12),ch);
+        c+=vec3(1.,.42,.1)*glow*1.7+vec3(1.,.92,.7)*pow(glow,5.)*1.2;gl_FragColor=vec4(c,1.);}`;
+    const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o; };
+    const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
+    const go = () => {
+      try {
+        gl.useProgram(pr);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+        const loc = gl.getAttribLocation(pr, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+        for (const [k, v] of [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+      } catch { return; } // e.g. opened from disk, where the photo cannot be read into a texture
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      cv.width = Math.round(paper.clientWidth * dpr); cv.height = Math.round(paper.clientHeight * dpr);
+      gl.viewport(0, 0, cv.width, cv.height);
+      const uP = gl.getUniformLocation(pr, "p"); gl.uniform2f(gl.getUniformLocation(pr, "r"), cv.width, cv.height);
+      paper.classList.add("gl"); paper.appendChild(cv);
+      const t0 = performance.now() + 1500, dur = 2600;
+      const frame = (t) => {
+        const k = Math.max(0, Math.min(1, (t - t0) / dur)), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        gl.uniform1f(uP, e); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        if (k < 1 && !$("takeover").hidden) burnRaf = requestAnimationFrame(frame);
+      };
+      burnRaf = requestAnimationFrame(frame);
+    };
+    if (img.complete && img.naturalWidth) go(); else img.addEventListener("load", go, { once: true });
+  }
   function showTakeover() {
     const c = BY_RANK.get(1);
     $("takeoverIn").innerHTML = `<p class="kicker">Cigar of the Year 2026</p>
-      <div class="paper"><img src="assets/c1.webp" alt="${esc(c.name)}" width="1400" height="350"></div>
-      <h2>${esc(c.name)}</h2>
-      <p class="meta"><b>${c.score}</b> points · ${esc(c.country)} · ${fmtSize(c)}</p>
+      <div class="paper" id="takePaper"><img src="assets/c1.webp" alt="${esc(c.name)}" width="1400" height="350"></div>
+      <h2 aria-label="${esc(c.name)}">${c.name.split(" ").map((w, i) => `<span style="--w:${i}" aria-hidden="true">${esc(w)}</span>`).join(" ")}</h2>
+      <p class="meta"><b id="takeScore">${reduced ? c.score : c.score - 9}</b> points · ${esc(c.country)} · ${fmtSize(c)}</p>
       <div class="btns"><button class="btn btn-ember" type="button" data-take="review">Read the review</button><button class="btn btn-ghost" type="button" data-take="close">Back to the list</button></div>`;
     $("takeover").hidden = false;
     $("takeoverIn").querySelector("button").focus({ preventScroll: true });
     if (reduced) return;
+    const v = $("takeVideo"); try { v.currentTime = 0; v.play().catch(() => {}); } catch { /* no film, still fine */ }
+    burnReveal($("takePaper"), $("takePaper").querySelector("img"));
+    const t0 = performance.now() + 3600, el = $("takeScore");
+    const count = (t) => { const k = Math.max(0, Math.min(1, (t - t0) / 900)); el.textContent = Math.round(c.score - 9 + 9 * (1 - Math.pow(1 - k, 3))); if (k < 1 && !$("takeover").hidden) countRaf = requestAnimationFrame(count); };
+    countRaf = requestAnimationFrame(count);
     const cv = $("sparks"), ctx = cv.getContext("2d");
     const size = () => { cv.width = cv.clientWidth; cv.height = cv.clientHeight; }; size();
     const P = Array.from({ length: 90 }, () => ({ x: Math.random(), y: 1 + Math.random(), v: 0.0015 + Math.random() * 0.004, r: 0.6 + Math.random() * 2, w: Math.random() * 6.28 }));
@@ -363,7 +413,7 @@
     draw();
   }
   function hideTakeover(then) {
-    $("takeover").hidden = true; cancelAnimationFrame(sparkRaf);
+    $("takeover").hidden = true; cancelAnimationFrame(sparkRaf); cancelAnimationFrame(burnRaf); cancelAnimationFrame(countRaf); try { $("takeVideo").pause(); } catch { /* nothing playing */ }
     if (then === "review") openDrawer(1); else $("coty").scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
   }
 
@@ -389,6 +439,7 @@
       const first = Math.min(...state.fresh);
       const el = $(`no-${first}-row`); if (el) el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" });
       toast(`${RELEASES[state.stage - 1].title} just opened`);
+      if (!reduced) { const f = document.createElement("div"); f.className = "flash"; document.body.appendChild(f); setTimeout(() => f.remove(), 1400); }
     }
     if (state.open && !isOpen(state.open)) closeDrawer();
   }
@@ -502,8 +553,10 @@
         vec2 q=vec2(fbm(p+t*.035),fbm(p+vec2(5.2,1.3)-t*.025));
         float f=fbm(p+2.4*q);float w=smoothstep(.38,.9,f);
         float side=smoothstep(.15,.95,uv.x);
-        vec3 c=mix(vec3(.059,.043,.031),vec3(.72,.6,.5),w*.62*(.4+.6*side));
-        c+=vec3(.95,.36,.1)*pow(1.-uv.y,3.5)*.28*(.5+.8*q.x)*side;
+        vec3 c=mix(vec3(.059,.043,.031),vec3(.62,.5,.4),w*.42*(.45+.55*side));
+        vec2 a=vec2(.78+.1*sin(t*.11),.72+.12*cos(t*.09)),b=vec2(.16+.1*cos(t*.07),.2+.1*sin(t*.1));
+        c+=vec3(.9,.36,.12)*.2*exp(-7.*dot(uv-a,uv-a))+vec3(.78,.6,.3)*.14*exp(-6.*dot(uv-b,uv-b));
+        c+=vec3(.95,.36,.1)*pow(1.-uv.y,4.)*.12*(.5+.8*q.x);
         gl_FragColor=vec4(c,1.);}`;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
     const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
@@ -517,8 +570,113 @@
     const frame = (ms) => { gl.uniform2f(uR, cv.width, cv.height); gl.uniform1f(uT, ms / 1000 + 40); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); if (visible && !reduced) raf = requestAnimationFrame(frame); };
     size(); frame(0);
     new ResizeObserver(() => { size(); if (reduced) frame(0); }).observe(cv);
-    new IntersectionObserver(([en]) => { const was = visible; visible = en.isIntersecting; if (visible && !was && !reduced) { cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); } }).observe(cv);
+    document.addEventListener("visibilitychange", () => { const was = visible; visible = !document.hidden; if (visible && !was && !reduced) { cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); } });
   })();
+
+  /* ---------- 3D: the sealed No. 1, a cigar in a glass tube (three.js) ---------- */
+  const three = {};
+  function build3d() {
+    const T = window.THREE, rnd = (a, b) => a + Math.random() * (b - a);
+    const renderer = new T.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+    renderer.outputEncoding = T.sRGBEncoding; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
+    const scene = new T.Scene(), cam = new T.PerspectiveCamera(30, 5 / 4, 0.1, 50); cam.position.set(0, 0, 10.5);
+    const cvs = (w, h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return [c, c.getContext("2d")]; };
+
+    // a small studio to reflect: soft boxes on black
+    const [ec, e] = cvs(512, 256); e.fillStyle = "#070504"; e.fillRect(0, 0, 512, 256);
+    const box = (x, y, rx, col) => { const g = e.createRadialGradient(x, y, 0, x, y, rx); g.addColorStop(0, col); g.addColorStop(1, "rgba(0,0,0,0)"); e.fillStyle = g; e.fillRect(0, 0, 512, 256); };
+    box(110, 50, 110, "rgba(255,226,180,1)"); box(390, 80, 90, "rgba(255,150,70,.95)"); box(256, 230, 150, "rgba(255,190,120,.45)"); box(470, 30, 46, "#fff"); box(30, 150, 40, "rgba(255,240,220,.9)");
+    const envTex = new T.CanvasTexture(ec); envTex.mapping = T.EquirectangularReflectionMapping; envTex.encoding = T.sRGBEncoding;
+    const pm = new T.PMREMGenerator(renderer); scene.environment = pm.fromEquirectangular(envTex).texture; pm.dispose();
+
+    // wrapper leaf: mottled brown, a spiral seam, fine veins
+    const [wc, w] = cvs(1024, 512);
+    const g = w.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, "#6a3b1c"); g.addColorStop(0.5, "#7d4a25"); g.addColorStop(1, "#5f3417"); w.fillStyle = g; w.fillRect(0, 0, 1024, 512);
+    for (let i = 0; i < 2400; i++) { w.fillStyle = Math.random() < 0.5 ? `rgba(34,15,6,${rnd(0.03, 0.09)})` : `rgba(196,134,82,${rnd(0.02, 0.07)})`; w.beginPath(); w.ellipse(rnd(0, 1024), rnd(0, 512), rnd(2, 30), rnd(1, 9), rnd(0, 3.14), 0, 6.28); w.fill(); }
+    for (let k = -2; k < 8; k++) { const y = k * 96; w.strokeStyle = "rgba(30,12,4,.55)"; w.lineWidth = 2.2; w.beginPath(); w.moveTo(0, y); w.lineTo(1024, y + 96); w.stroke(); w.strokeStyle = "rgba(214,160,104,.22)"; w.lineWidth = 1.2; w.beginPath(); w.moveTo(0, y + 3); w.lineTo(1024, y + 99); w.stroke(); }
+    for (let i = 0; i < 60; i++) { let x = rnd(0, 1024), y = rnd(0, 512); w.strokeStyle = `rgba(40,18,8,${rnd(0.12, 0.3)})`; w.lineWidth = rnd(0.5, 1.3); w.beginPath(); w.moveTo(x, y); for (let s = 0; s < 6; s++) { x += rnd(10, 34); y += rnd(-9, 12); w.lineTo(x, y); } w.stroke(); }
+    const leaf = new T.CanvasTexture(wc); leaf.wrapS = leaf.wrapT = T.RepeatWrapping; leaf.encoding = T.sRGBEncoding; leaf.anisotropy = 8;
+    const leafMat = new T.MeshStandardMaterial({ map: leaf, bumpMap: leaf, bumpScale: 0.02, roughness: 0.78, metalness: 0, envMapIntensity: 0.55 });
+
+    // the band: gold foil, red medallion, the rank
+    const [bc, b] = cvs(1024, 256);
+    const bg = b.createLinearGradient(0, 0, 0, 256); bg.addColorStop(0, "#8a6a2c"); bg.addColorStop(0.5, "#e9cf8f"); bg.addColorStop(1, "#8a6a2c"); b.fillStyle = bg; b.fillRect(0, 0, 1024, 256);
+    b.fillStyle = "#7c1820"; b.fillRect(0, 0, 1024, 30); b.fillRect(0, 226, 1024, 30);
+    b.fillStyle = "#f1dfae"; for (let x = 8; x < 1024; x += 16) { b.beginPath(); b.arc(x, 15, 3, 0, 6.28); b.fill(); b.beginPath(); b.arc(x, 241, 3, 0, 6.28); b.fill(); }
+    for (const cx of [256, 768]) {
+      b.save(); b.translate(cx, 128); b.rotate(Math.PI / 2);
+      b.fillStyle = "#7c1820"; b.beginPath(); b.arc(0, 0, 84, 0, 6.28); b.fill(); b.strokeStyle = "#f1dfae"; b.lineWidth = 5; b.beginPath(); b.arc(0, 0, 74, 0, 6.28); b.stroke();
+      b.fillStyle = "#f6e6b8"; b.textAlign = "center"; b.textBaseline = "middle"; b.font = "700 108px 'Bodoni Moda', Didot, Georgia, serif"; b.fillText("1", 0, 6);
+      b.restore();
+      b.save(); b.translate(cx + 256, 128); b.rotate(Math.PI / 2); b.fillStyle = "#4a1014"; b.textAlign = "center"; b.textBaseline = "middle"; b.font = "600 25px 'JetBrains Mono', monospace"; b.fillText("TOP 25", 0, -22); b.fillText("· 2026 ·", 0, 22); b.restore();
+    }
+    const bandTex = new T.CanvasTexture(bc); bandTex.encoding = T.sRGBEncoding; bandTex.anisotropy = 8; bandTex.wrapS = T.RepeatWrapping;
+    const gold = new T.MeshStandardMaterial({ color: 0xd9b56a, metalness: 1, roughness: 0.2, envMapIntensity: 1.6 });
+
+    const R = 0.44, L = 4.3, cg = new T.Group();
+    const body = new T.Mesh(new T.CylinderGeometry(R, R, L, 72, 1, true), leafMat); cg.add(body);
+    const head = new T.Mesh(new T.SphereGeometry(R, 48, 24, 0, 6.2832, 0, 1.5708), leafMat); head.scale.y = 0.85; head.position.y = L / 2; cg.add(head);
+    const [fc, f] = cvs(256, 256); f.fillStyle = "#3a2010"; f.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 260; i++) { f.strokeStyle = `rgba(${Math.random() < 0.5 ? "20,9,3" : "150,98,54"},${rnd(0.2, 0.6)})`; f.lineWidth = rnd(1, 4); f.beginPath(); f.arc(128 + rnd(-70, 70), 128 + rnd(-70, 70), rnd(6, 60), rnd(0, 6.28), rnd(0, 6.28)); f.stroke(); }
+    const foot = new T.Mesh(new T.CircleGeometry(R, 48), new T.MeshStandardMaterial({ map: new T.CanvasTexture(fc), roughness: 0.95 })); foot.rotation.x = Math.PI / 2; foot.position.y = -L / 2; cg.add(foot);
+    const band = new T.Mesh(new T.CylinderGeometry(R * 1.035, R * 1.035, 0.86, 72, 1, true), new T.MeshStandardMaterial({ map: bandTex, metalness: 0.75, roughness: 0.3, envMapIntensity: 1.5 })); band.position.y = L * 0.2; cg.add(band);
+
+    // the tube: glass barrel, rounded end, gold cap
+    const RT = R * 1.36, TL = L + 0.7, tube = new T.Group();
+    const glass = (side, op) => new T.MeshPhysicalMaterial({ color: 0xfff1dc, metalness: 0, roughness: 0.03, transparent: true, opacity: op, envMapIntensity: 2.6, clearcoat: 1, clearcoatRoughness: 0.04, depthWrite: false, side });
+    for (const [side, op] of [[T.BackSide, 0.1], [T.FrontSide, 0.24]]) {
+      const m = glass(side, op);
+      const barrel = new T.Mesh(new T.CylinderGeometry(RT, RT, TL, 72, 1, true), m); barrel.position.y = -0.1; tube.add(barrel);
+      const end = new T.Mesh(new T.SphereGeometry(RT, 48, 24, 0, 6.2832, 1.5708, 1.5708), m); end.position.y = -0.1 - TL / 2; tube.add(end);
+    }
+    const cap = new T.Mesh(new T.CylinderGeometry(RT * 1.06, RT * 1.06, 0.62, 72), gold); cap.position.y = TL / 2 + 0.2; tube.add(cap);
+    const capTop = new T.Mesh(new T.SphereGeometry(RT * 1.06, 48, 16, 0, 6.2832, 0, 1.5708), gold); capTop.scale.y = 0.35; capTop.position.y = TL / 2 + 0.51; tube.add(capTop);
+    for (const y of [TL / 2 - 0.16, TL / 2 - 0.3]) { const ring = new T.Mesh(new T.TorusGeometry(RT * 1.02, 0.028, 12, 72), gold); ring.rotation.x = Math.PI / 2; ring.position.y = y; tube.add(ring); }
+
+    const spin = new T.Group(); spin.add(cg, tube);
+    const orient = new T.Group(); orient.rotation.z = -Math.PI / 2; orient.add(spin);
+    const pivot = new T.Group(); pivot.rotation.z = 0.2; pivot.add(orient); scene.add(pivot);
+    scene.add(new T.HemisphereLight(0xffe8c8, 0x1a0e06, 0.6));
+    const key = new T.DirectionalLight(0xffdcae, 1.5); key.position.set(3, 4, 6); scene.add(key);
+    const ember = new T.PointLight(0xe8642a, 1.6, 14); ember.position.set(-3.5, -2.2, 2.5); scene.add(ember);
+
+    let vel = 0, tx = 0, ty = 0, dragX = null, raf = 0, on = false, host = null;
+    const el = renderer.domElement;
+    const frame = (ms) => {
+      if (!on) return;
+      const t = ms / 1000;
+      spin.rotation.y += (reduced ? 0 : 0.0065) + vel; vel *= 0.94;
+      pivot.rotation.y += (tx * 0.5 - pivot.rotation.y) * 0.06; pivot.rotation.x += (ty * 0.3 - pivot.rotation.x) * 0.06;
+      pivot.position.y = reduced ? 0 : Math.sin(t * 0.9) * 0.07; ember.intensity = 1.5 + Math.sin(t * 5.3) * 0.25;
+      renderer.render(scene, cam); raf = requestAnimationFrame(frame);
+    };
+    three.attach = (h) => {
+      host = h; host.appendChild(el); host.classList.add("on");
+      renderer.setSize(host.clientWidth, host.clientHeight, false); cam.aspect = host.clientWidth / host.clientHeight; cam.updateProjectionMatrix();
+      host.onpointermove = (ev) => { const r = host.getBoundingClientRect(); tx = (ev.clientX - r.left) / r.width - 0.5; ty = (ev.clientY - r.top) / r.height - 0.5; if (dragX !== null) { vel += (ev.clientX - dragX) * 0.0016; dragX = ev.clientX; } };
+      host.onpointerdown = (ev) => { dragX = ev.clientX; }; host.onpointerup = host.onpointerleave = () => { dragX = null; tx = ty = 0; };
+      three.io && three.io.disconnect();
+      three.io = new IntersectionObserver(([en]) => { const was = on; on = en.isIntersecting && host.isConnected; if (on && !was) raf = requestAnimationFrame(frame); }); three.io.observe(host);
+    };
+    addEventListener("resize", () => { if (host && host.isConnected) { renderer.setSize(host.clientWidth, host.clientHeight, false); cam.aspect = host.clientWidth / host.clientHeight; cam.updateProjectionMatrix(); } });
+    three.built = true;
+  }
+  function mount3d() {
+    const host = $("seal3d");
+    if (!host || !window.THREE) return;
+    try { if (!three.built) build3d(); three.attach(host); } catch { host.classList.remove("on"); }
+  }
+  addEventListener("three-ready", mount3d);
+
+  // pointer tilt for the big photographs
+  document.addEventListener("pointermove", (e) => {
+    const el = !$("takeover").hidden ? $("takePaper") : e.target.closest && e.target.closest(".coty-photo") && e.target.closest(".coty-photo").querySelector("img");
+    if (!el || reduced) return;
+    const r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    el.style.setProperty("--ry", `${Math.max(-1, Math.min(1, x)) * 9}deg`); el.style.setProperty("--rx", `${Math.max(-1, Math.min(1, y)) * -9}deg`);
+  }, { passive: true });
+  if (reduced) { const hv = $("heroVideo"); if (hv) { hv.removeAttribute("autoplay"); hv.pause(); } }
 
   /* ---------- boot ---------- */
   const fromUrl = new URLSearchParams(location.search).get("stage");

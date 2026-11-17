@@ -11,6 +11,13 @@ python3 -m http.server 8080   # then open http://localhost:8080
 `python3 build-standalone.py` writes `top25-standalone.html`: the same page in one
 file with the images inlined, for emailing or opening offline.
 
+## What it uses
+
+- **Glass:** frosted surfaces over one fixed WebGL smoke field that runs behind the whole page.
+- **WebGL:** the smoke shader, and the burn-through that reveals the Cigar of the Year.
+- **3D:** the sealed No. 1 is a three.js cigar in a glass tube (drag to turn it); daily reveals flip in.
+- **Runway:** `assets/hero.mp4` and `assets/reveal.mp4` were generated with Gen-4.5 from text prompts.
+
 ## Presenting it
 
 The pill at the bottom simulates reveal week: Before, Mon, Tue, Wed, No. 1,

@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<canvas id="smoke" aria-hidden="true"></canvas>
 <div class="burnline" aria-hidden="true"><i id="burn"></i></div>
 
 <header class="top" id="top">
@@ -37,7 +38,7 @@
 <main>
   <!-- HERO -->
   <section class="hero" id="hero">
-    <canvas id="smoke" aria-hidden="true"></canvas>
+    <video class="hero-video" id="heroVideo" autoplay muted loop playsinline preload="auto" poster="assets/hero-poster.jpg" aria-hidden="true"><source src="assets/hero.mp4" type="video/mp4"></video>
     <div class="hero-veil" aria-hidden="true"></div>
     <div class="wrap hero-in">
       <div class="hero-copy">
@@ -234,6 +235,7 @@
 
 <!-- CIGAR OF THE YEAR TAKEOVER -->
 <div class="takeover" id="takeover" hidden>
+  <video class="take-video" id="takeVideo" muted playsinline preload="auto" aria-hidden="true"><source src="assets/reveal.mp4" type="video/mp4"></video>
   <canvas id="sparks" aria-hidden="true"></canvas>
   <div class="takeover-in" id="takeoverIn"></div>
 </div>
@@ -252,6 +254,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" async onload="window.dispatchEvent(new Event('three-ready'))"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

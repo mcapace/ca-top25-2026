@@ -5,7 +5,8 @@ here = pathlib.Path(__file__).parent
 html = (here / "index.html").read_text(encoding="utf8")
 css = (here / "styles.css").read_text(encoding="utf8")
 js = (here / "data.js").read_text(encoding="utf8") + "\n" + (here / "app.js").read_text(encoding="utf8")
-uris = {p.name: f"data:image/{p.suffix[1:]};base64," + base64.b64encode(p.read_bytes()).decode() for p in (here / "assets").iterdir()}
+MIME = {".mp4": "video/mp4", ".jpg": "image/jpeg"}
+uris = {p.name: f"data:{MIME.get(p.suffix, 'image/' + p.suffix[1:])};base64," + base64.b64encode(p.read_bytes()).decode() for p in (here / "assets").iterdir()}
 
 html = html.replace('<link rel="stylesheet" href="styles.css">', f"<style>{css}</style>")
 html = html.replace('<script src="data.js"></script>\n<script src="app.js"></script>', "<script>window.CA_ASSETS=" + repr(uris).replace("'", '"') + ";</script>\n<script>" + js.replace("</script", "<\\/script") + "</script>")

@@ -2,6 +2,7 @@
 window.CA_TOP25 = [
  {
   "rank": 1,
+  "spin": {"dir": "assets/spin1", "frames": 63, "min": -65, "max": 90, "zero": 26},
   "slug": "padron-60th-anniversary-perfecto-2025",
   "name": "Padrón 60th Anniversary Perfecto",
   "score": 97,

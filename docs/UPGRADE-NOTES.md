@@ -31,6 +31,12 @@ Per cigar the repository has one side photograph (1400 × 350) and one band clos
 - **Sealed cigars** are procedural (leaf texture, numbered band) so nothing about an unreleased cigar is drawn.
 - The winner gets no better treatment than the others yet, because its assets are no better. Three cigars with white paper sleeves (Nos. 6, 21, 24) have approximate silhouettes where white paper meets the white background.
 
+### The winner's turn (Runway)
+
+Runway has no image-to-3D endpoint, so a 360° was attempted as an image-to-video turntable (Veo 3.1, the photo as both first and last frame). It did not produce a true 360°: the clip turns the cigar about 100° until the foot faces the camera, then morphs the foot into the head and turns back. A generated back view to anchor two half-turns came out as a different, straight-sided cigar, so that route was stopped.
+
+What ships is the part of the clip that holds together: 63 evenly spaced frames from 65° head-on to 90° foot-on (`assets/spin1/`), shown in the winner's detail panel with a slider and drag. It works without WebGL. The panel says it is AI-rendered, that the ends are generated, and that the far side is not shown. A real 360° still needs item 1 below.
+
 ### Missing assets
 
 1. Winner: a turntable photo set (24–36 angles) or a photogrammetry scan, for a true 360° model.

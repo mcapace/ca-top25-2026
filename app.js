@@ -354,7 +354,7 @@
         <small>Built from the one photograph, so the far side is a mirror image.</small>
       </div>
       <div class="d-acts">
-        ${stage ? `<button class="pill" type="button" id="turnBtn" aria-pressed="false" aria-controls="dTurn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 12c0-2.2 3.6-4 8-4s8 1.8 8 4-3.6 4-8 4m0 0 2.5-2.5M12 16l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>Turn it in 3D</span></button>` : ""}
+        ${stage || c.spin ? `<button class="pill" type="button" id="turnBtn" aria-pressed="false" aria-controls="dTurn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 12c0-2.2 3.6-4 8-4s8 1.8 8 4-3.6 4-8 4m0 0 2.5-2.5M12 16l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>${c.spin ? "Turn it" : "Turn it in 3D"}</span></button>` : ""}
         <button class="pill" type="button" data-save="${c.rank}" aria-pressed="${saved}">${ICON.box} <span>${saved ? "In my humidor" : "Add to my humidor"}</span></button>
         ${c.video ? `<a class="pill" href="https://www.cigaraficionado.com/video/${c.video}" target="_blank" rel="noopener">${ICON.play} Watch the film</a>` : ""}
         <button class="pill" type="button" data-share="${c.rank}">${ICON.share} Share</button>
@@ -380,15 +380,36 @@
   }
   $("drawer").addEventListener("cancel", (e) => { e.preventDefault(); closeDrawer(); });       // Escape
   $("drawer").addEventListener("click", (e) => {
-    const b = e.target.closest("#turnBtn"); if (!b || !stage) return;
-    const on = b.getAttribute("aria-pressed") !== "true";
-    b.setAttribute("aria-pressed", on); b.querySelector("span").textContent = on ? "Back to the photo" : "Turn it in 3D"; $("dTurn").hidden = !on;
+    const b = e.target.closest("#turnBtn"); if (!b) return;
+    const on = b.getAttribute("aria-pressed") !== "true", sp = BY_RANK.get(state.open).spin;
+    if (!sp && !stage) return;
+    b.setAttribute("aria-pressed", on); b.querySelector("span").textContent = on ? "Back to the photo" : sp ? "Turn it" : "Turn it in 3D"; $("dTurn").hidden = !on;
+    if (sp) {                              // a generated frame sequence, where one exists
+      const host = $("dPhoto"), rg = $("turnRange");
+      host.classList.toggle("spin", on);
+      if (on) { rg.min = sp.min; rg.max = sp.max; rg.value = 0; $("dTurn").querySelector("small").textContent = "Rendered by AI (Runway) from the one photograph. The ends are generated, not photographed, and the far side is not shown."; for (let i = 0; i < sp.frames; i++) new Image().src = spinSrc(sp, i); }
+      setSpin(sp, 0, !on);
+      return;
+    }
     if (on) { stage.setHost("viewer", $("dPhoto")); stage.setViewer(state.open); stage.setViewYaw((+$("turnRange").value * Math.PI) / 180); } else releaseViewer();
   });
-  $("drawer").addEventListener("input", (e) => { if (e.target.id === "turnRange" && stage) stage.setViewYaw((+e.target.value * Math.PI) / 180); });
+  const spinSrc = (sp, i) => `${sp.dir}/${String(i).padStart(2, "0")}.webp`;
+  function setSpin(sp, deg, off) {
+    const img = $("dPhoto").querySelector("img"); if (!img) return;
+    const i = Math.round(((Math.max(sp.min, Math.min(sp.max, deg)) - sp.min) / (sp.max - sp.min)) * (sp.frames - 1));
+    img.src = off ? `assets/c${state.open}.webp` : spinSrc(sp, i);
+  }
+  $("drawer").addEventListener("input", (e) => {
+    if (e.target.id !== "turnRange") return;
+    const sp = state.open && BY_RANK.get(state.open).spin;
+    if (sp && $("dPhoto").classList.contains("spin")) setSpin(sp, +e.target.value); else if (stage) stage.setViewYaw((+e.target.value * Math.PI) / 180);
+  });
   { let dragX = null; const dr = $("drawer");
-    dr.addEventListener("pointerdown", (e) => { if (e.target.closest("#dPhoto.live")) dragX = e.clientX; });
-    dr.addEventListener("pointermove", (e) => { if (dragX === null || !stage) return; stage.nudge("viewer", e.clientX - dragX); dragX = e.clientX; const rg = $("turnRange"); if (rg) rg.value = Math.round((stage.viewYaw() * 180) / Math.PI); });
+    dr.addEventListener("pointerdown", (e) => { if (e.target.closest("#dPhoto.live, #dPhoto.spin")) { dragX = e.clientX; e.preventDefault(); } });
+    dr.addEventListener("pointermove", (e) => { if (dragX === null) return;
+      const sp = state.open && BY_RANK.get(state.open).spin;
+      if (sp && $("dPhoto").classList.contains("spin")) { const rg = $("turnRange"); rg.value = Math.max(sp.min, Math.min(sp.max, +rg.value - (e.clientX - dragX) * 0.4)); dragX = e.clientX; setSpin(sp, +rg.value); return; }
+      if (!stage) return; stage.nudge("viewer", e.clientX - dragX); dragX = e.clientX; const rg = $("turnRange"); if (rg) rg.value = Math.round((stage.viewYaw() * 180) / Math.PI); });
     for (const ev of ["pointerup", "pointercancel"]) dr.addEventListener(ev, () => { dragX = null; }); }
   $("drawer").addEventListener("close", () => { releaseViewer(); state.open = null; try { history.replaceState(null, "", location.pathname + location.search); } catch { /* sandboxed */ } });
 

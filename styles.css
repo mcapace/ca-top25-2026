@@ -811,3 +811,8 @@ button.bar[aria-pressed="true"] i { background: linear-gradient(90deg, var(--emb
 .lite body { background: radial-gradient(70% 50% at 80% 0%, #2a170d, var(--ink) 70%) fixed; }
 .lite .hero-video { filter: brightness(.5); transform: none; }
 .lite .drawer::backdrop { background: rgba(8,5,3,.8); }
+
+/* ---------- generated turn (frame sequence) ---------- */
+.d-photo.spin { cursor: grab; user-select: none; -webkit-user-select: none; }
+.d-photo.spin:active { cursor: grabbing; }
+.d-photo.spin img { aspect-ratio: 1000 / 365; pointer-events: none; }

@@ -19,6 +19,14 @@
   const bandShot = (r) => (HI.has(r) ? `assets/hi/b${r}.webp` : `assets/b${r}.webp`);
   const saved = new Set((() => { try { return JSON.parse(localStorage.getItem("ca25.humidor") || "[]"); } catch { return []; } })());
   const persist = () => { try { localStorage.setItem("ca25.humidor", JSON.stringify([...saved])); } catch { /* private window */ } $("savedN").textContent = saved.size; };
+  const FLAVOUR = /\b(notes?|flavou?rs?|finish|taste[sd]?|sweet\w*|earth\w*|cedar|coffee|cocoa|nut\w*|leather\w*|spic\w*|caramel|cream\w*|pepper\w*|wood\w*|oak|fruit\w*|chocolate|almond|hickory|toast\w*|rais\w*|vanilla|honey|cinnamon|citrus|smok\w*|tea|tann\w*|mineral\w*|licorice|espresso|walnut|hazelnut|molasses|graham|floral|orange|cherry|palate)\b/gi;
+  function tasting(c) {
+    if (c.taste) return c.taste;            // an editor's own choice of sentence wins
+    const text = c.note.join(" ").replace(/\b(No|St|Dr|Mr|Jr)\.(\s)/g, "$1\u0001$2"), parts = text.match(/[^.!?]+[.!?]+(?=["”’)]*\s|["”’)]*$)/g) || [text];
+    let best = null, top = 0;
+    for (const raw of parts) { const t = raw.trim().replace(/^["”’)]+\s*/, ""), n = (t.match(FLAVOUR) || []).length, sc = n / Math.sqrt(Math.max(12, t.split(/\s+/).length)); if (n >= 2 && t.length > 90 && t.length < 330 && sc > top) { top = sc; best = t; } }
+    return (best || parts[parts.length - 1].trim()).replace(/\u0001/g, ".");
+  }
   const BOOKMARK = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4v-17Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
 
   /* ---------- the light ----------
@@ -86,10 +94,10 @@
     const A = { x: a.left - f.left, y: a.top - f.top, w: a.width }, B = { x: b.left - f.left, y: b.top - f.top, w: b.width };
     // progress runs from the top of the page to the point where the landing place is centred on screen
     const end = Math.max(1, B.y + flightEl.offsetTop + b.height / 2 - innerHeight / 2);
-    const p = reduced ? (scrollY > end * 0.5 ? 1 : 0) : ease(scrollY / end);
+    const p = reduced ? 0 : ease(scrollY / end);        // with reduced motion it stays in the hero; the section below shows its own still
     const w = Math.max(A.w, B.w), x = A.x + (B.x - A.x) * p, y = A.y + (B.y - A.y) * p, s = (A.w + (B.w - A.w) * p) / w;
     product.style.width = `${w}px`; product.style.height = `${w / 4}px`;
-    product.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) scale(${s.toFixed(4)}) rotate(${(-3.2 * (1 - p)).toFixed(2)}deg)`;
+    product.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) scale(${s.toFixed(4)})`;
     if (heroLight) heroLight.size(w);
   }
   let queued = false;
@@ -100,7 +108,8 @@
 
   /* ---------- feature text ---------- */
   const specRows = (c) => [["Made by", c.maker], ["Factory", c.country], ["Size", `${fmtLen(c.len)} in. × ${c.ring} ring gauge`], ["Strength", strength(c)], ["Wrapper", c.wrapper], ["Binder", c.binder], ["Filler", c.filler], ["Price", price(c)]].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("");
-  { const c = BY.get(1); $("featureLead").textContent = c.note[0]; $("featureSpecs").innerHTML = specRows(c).split("</div>").slice(1, 5).join("</div>") + "</div>"; }
+  { const c = BY.get(1); $("featureTasting").textContent = tasting(c);
+    $("featureMake").innerHTML = [["Wrapper", c.wrapper], ["Binder", c.binder], ["Filler", c.filler], ["Size", `${fmtLen(c.len)} in. × ${c.ring}`]].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join(""); }
 
   /* ---------- the list ---------- */
   const SCALE_IN = 7.4;                     // inches represented by the full width of the photo column
@@ -140,10 +149,27 @@
     const ticks = []; for (let i = 0; i <= c.len * 2 + 0.001; i++) { const x = (x0 + ((x1 - x0) * (i / 2)) / c.len) * 100, whole = i % 2 === 0; ticks.push(`<line x1="${x}%" x2="${x}%" y1="0" y2="${whole ? 11 : 6}"/>${whole && i ? `<text x="${x}%" y="25" text-anchor="middle">${i / 2}</text>` : ""}`); }
     $("detailIn").innerHTML = `
       <div class="d-top"><button type="button" data-close>Back to the list</button><div class="pager"><button type="button" data-go="${prev ?? ""}" ${prev == null ? "disabled" : ""}>Previous</button><button type="button" data-go="${next ?? ""}" ${next == null ? "disabled" : ""}>Next</button></div></div>
-      <div class="stage-wrap">
+      <div class="d-open">
+        <div class="d-id">
+          <h2 id="dTitle">${esc(c.name)}</h2>
+          <p class="standfirst">No. ${c.rank} of 25${c.rank === 1 ? ", Cigar of the Year" : ""}. ${c.score} points.</p>
+          <p class="d-tasting">${esc(tasting(c))}</p>
+          <div class="d-acts">
+            <button type="button" data-save="${rank}" aria-pressed="${saved.has(rank)}">${BOOKMARK}<span>${saved.has(rank) ? "Saved" : "Save"}</span></button>
+            <button type="button" data-share="${rank}">Share</button>
+            ${c.video ? `<a href="https://www.cigaraficionado.com/video/${c.video}" target="_blank" rel="noopener">Watch the film</a>` : ""}
+          </div>
+          <p class="d-status" id="dStatus" role="status"></p>
+        </div>
+        <div class="d-figure">
+          <div class="d-product" id="dProduct"><img src="${cutout(rank)}" alt="${esc(c.name)}" width="1600" height="400"></div>
+          <p class="d-under"><span>${fmtLen(c.len)} in. × ${c.ring} ring gauge · ${esc(c.country)}</span><button class="inline" type="button" data-inspect aria-expanded="false" aria-controls="inspect">Inspect closely</button></p>
+        </div>
+      </div>
+      <div class="inspect" id="inspect" hidden>
         <div class="stage" id="stage" tabindex="0" role="group" aria-label="Photograph of ${esc(c.name)}. Use plus and minus to zoom and the arrow keys to move.">
           <div class="stage-inner" id="stageInner">
-            <img class="whole" src="${photo(rank)}" alt="${esc(c.name)}" width="1600" height="400">
+            <img class="whole" src="${cutout(rank)}" alt="" width="1600" height="400">
             <svg class="ruler" aria-hidden="true"><line x1="${x0 * 100}%" x2="${x1 * 100}%" y1="0" y2="0"/>${ticks.join("")}<text x="${x1 * 100}%" y="25" dx="14">inches</text></svg>
           </div>
           <div class="stage-band" id="stageBand" hidden><img src="${bandShot(rank)}" alt="The band of ${esc(c.name)}, photographed close" width="650" height="650"></div>
@@ -151,33 +177,38 @@
         <div class="stage-bar">
           <div class="views" role="group" aria-label="View"><button type="button" data-view="whole" aria-pressed="true">Whole cigar</button><button type="button" data-view="band" aria-pressed="false">The band</button></div>
           <div class="zoom" role="group" aria-label="Zoom"><button type="button" data-zoom="-1" aria-label="Zoom out">−</button><output id="zoomOut">100%</output><button type="button" data-zoom="1" aria-label="Zoom in">+</button></div>
+          <button type="button" class="done" data-inspect-done>Done</button>
         </div>
-        <p class="stage-note">Drawn to scale: ${fmtLen(c.len)} inches long, ${c.ring} ring gauge. Drag to move, pinch or use the buttons to look closer.</p>
+        <p class="stage-note">Drawn to scale against inches. Drag to move; pinch or use the buttons to look closer.</p>
       </div>
       <div class="d-body">
-        <div class="d-head">
-          <h2 id="dTitle">${esc(c.name)}</h2>
-          <p class="standfirst">No. ${c.rank} of 25${c.rank === 1 ? ", Cigar of the Year" : ""}. ${c.score} points.</p>
-          <div class="d-acts">
-            <button type="button" data-save="${rank}" aria-pressed="${saved.has(rank)}">${BOOKMARK}<span>${saved.has(rank) ? "Saved" : "Save"}</span></button>
-            <button type="button" data-share="${rank}">Share</button>
-            ${c.video ? `<a href="https://www.cigaraficionado.com/video/${c.video}" target="_blank" rel="noopener">Watch the film</a>` : ""}
-          </div>
-          <p class="d-status" id="dStatus" role="status"></p>
-          <dl class="specs">${specRows(c)}</dl>
-        </div>
-        <div class="d-review">${c.note.map((p) => `<p>${esc(p)}</p>`).join("")}<p class="d-foot">This is the published 2025 review, standing in for 2026. The photograph is enlarged from an 800-pixel original; closer inspection needs higher-resolution photography.</p></div>
+        <dl class="specs">${specRows(c)}</dl>
+        <div class="d-review">${c.note.map((p) => `<p>${esc(p)}</p>`).join("")}<p class="d-foot">This is the published 2025 review, standing in for 2026. The photograph is enlarged from an 800-pixel original, so close inspection is limited.</p></div>
       </div>`;
-    const stage = $("stage"), inner = $("stageInner");
-    view = { rank, z: 1, x: 0, y: 0, mode: "whole", stage, inner, light: null };
-    const cv = document.createElement("canvas"), api = lit(cv, rank);
-    if (api) { view.light = api; api.onready = () => { stage.classList.add("gl"); aimAll(); }; inner.prepend(cv); lights.add({ api, el: cv }); }
-    // open framed for the screen: whole cigar on a wide table, band and head on a narrow one
-    view.z = stage.clientWidth < 700 ? 2.3 : 1; view.x = stage.clientWidth < 700 ? -(c.prof.find((p) => p[0] > 0.62)[0] * stage.clientWidth * view.z - stage.clientWidth * 0.5) : 0;
-    place();
+    view = { rank, z: 1, x: 0, y: 0, mode: "whole", stage: null, inner: null, light: null };
+    const host = $("dProduct"), cv = document.createElement("canvas"), api = lit(cv, rank);
+    if (api) { api.onready = () => { host.classList.add("gl"); api.size(host.clientWidth); aimAll(); }; host.prepend(cv); lights.add({ api, el: cv }); }
     $("detailIn").scrollTop = 0;
   }
+  // Inspection is built the first time it is asked for.
+  function inspect(on) {
+    const panel = $("inspect"), btn = document.querySelector("[data-inspect]"); if (!panel || !view) return;
+    panel.hidden = !on; btn.setAttribute("aria-expanded", on); btn.textContent = on ? "Close inspection" : "Inspect closely";
+    if (!on) { btn.focus({ preventScroll: true }); return; }
+    if (!view.stage) {
+      view.stage = $("stage"); view.inner = $("stageInner");
+      const cv = document.createElement("canvas"), api = lit(cv, view.rank);
+      if (api) { view.light = api; api.onready = () => { view.stage.classList.add("gl"); place(); }; view.inner.prepend(cv); lights.add({ api, el: cv }); }
+      const c = BY.get(view.rank), W = view.stage.clientWidth;
+      // open framed for the screen: whole cigar on a wide table, band and head on a narrow one
+      if (W < 700) { view.z = 2.3; view.x = -(c.prof.find((p) => p[0] > 0.62)[0] * W * view.z - W * 0.5); }
+    }
+    place();
+    panel.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "nearest" });
+    view.stage.focus({ preventScroll: true });
+  }
   function place() {
+    if (!view || !view.stage) return;
     const { stage, inner } = view, W = stage.clientWidth, H = stage.clientHeight, h = (W / 4) * view.z;
     view.z = clamp(view.z, 1, 3); view.x = clamp(view.x, W - W * view.z, 0); view.y = clamp(view.y, -Math.max(0, (h - H) / 2 + 40), Math.max(0, (h - H) / 2 + 40));
     inner.style.transform = `translate3d(${view.x.toFixed(1)}px,${(-h / 2 + view.y - 8).toFixed(1)}px,0) scale(${view.z.toFixed(3)})`;
@@ -186,7 +217,7 @@
     if (view.light) view.light.size(W * view.z);
     aimAll();
   }
-  function zoomBy(f, cx) { const W = view.stage.clientWidth, at = cx == null ? W / 2 : cx, z0 = view.z, z1 = clamp(z0 * f, 1, 3); view.x = at - ((at - view.x) * z1) / z0; view.z = z1; place(); }
+  function zoomBy(f, cx) { if (!view || !view.stage) return; const W = view.stage.clientWidth, at = cx == null ? W / 2 : cx, z0 = view.z, z1 = clamp(z0 * f, 1, 3); view.x = at - ((at - view.x) * z1) / z0; view.z = z1; place(); }
   function setMode(m) { view.mode = m; $("stageBand").hidden = m !== "band"; view.inner.hidden = m === "band"; document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === m)); document.querySelector(".zoom").hidden = m === "band"; }
 
   function openDetail(rank, from) {
@@ -203,7 +234,7 @@
     if (!detail.open) return;
     const rank = view && view.rank, src = rank && $(`entry-${rank}`), done = () => { detail.close(); view = null; try { history.replaceState(null, "", location.pathname + location.search); } catch { /* sandboxed */ } };
     const onScreen = src && (() => { const r = src.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; })();
-    if (!src || !canMorph() || !onScreen || view.mode !== "whole") { done(); return; }
+    if (!src || !canMorph() || !onScreen) { done(); return; }
     const img = src.querySelector(".entry-photo img"), name = src.querySelector("h3"), root = document.documentElement;
     root.classList.add("vt");
     const vt = document.startViewTransition(() => { root.classList.remove("vt"); done(); img.style.viewTransitionName = "cigar"; name.style.viewTransitionName = "cigar-name"; });
@@ -218,7 +249,7 @@
   }
 
   document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-open],[data-save],[data-close],[data-go],[data-view],[data-zoom],[data-share],[data-reveal],[data-rv]"); if (!t) return;
+    const t = e.target.closest("[data-open],[data-save],[data-close],[data-go],[data-view],[data-zoom],[data-share],[data-reveal],[data-rv],[data-inspect],[data-inspect-done]"); if (!t) return;
     const d = t.dataset;
     if (d.save) { const r = +d.save; if (saved.has(r)) saved.delete(r); else saved.add(r); persist(); const on = saved.has(r);
       document.querySelectorAll(`[data-save="${r}"]`).forEach((b) => { b.setAttribute("aria-pressed", on); const s = b.querySelector("span"); if (s) s.textContent = on ? "Saved" : "Save"; else b.setAttribute("aria-label", `${on ? "Remove from saved" : "Save"}: ${BY.get(r).name}`); });
@@ -226,6 +257,8 @@
     else if (d.open) { e.preventDefault(); openDetail(+d.open, t); }
     else if ("close" in d) closeDetail();
     else if (d.go) openDetail(+d.go);
+    else if ("inspect" in d) inspect(t.getAttribute("aria-expanded") !== "true");
+    else if ("inspectDone" in d) inspect(false);
     else if ("reveal" in d) playReveal();
     else if (d.rv) { if (d.rv === "skip") { if (rv.run) rv.run.finish(); } else if (d.rv === "replay") playReveal(); else { const then = d.rv; closeReveal(); if (then === "review") openDetail(1); } }
     else if (d.view) setMode(d.view);
@@ -235,17 +268,17 @@
 
   // inspecting: drag to move, pinch or ctrl-wheel to zoom, keys when the table has focus
   { const pts = new Map(); let pinch = 0;
-    detail.addEventListener("pointerdown", (e) => { const s = e.target.closest("#stage"); if (!s || !view || view.mode !== "whole") return; pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } s.classList.add("dragging"); });
-    detail.addEventListener("pointermove", (e) => { if (!pts.has(e.pointerId) || !view) return; const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+    detail.addEventListener("pointerdown", (e) => { const s = e.target.closest("#stage"); if (!s || !view || !view.stage || view.mode !== "whole") return; pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } s.classList.add("dragging"); });
+    detail.addEventListener("pointermove", (e) => { if (!pts.has(e.pointerId) || !view || !view.stage) return; const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
       if (pts.size === 2) { const [a, b] = [...pts.values()], dist = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) zoomBy(dist / pinch, (a[0] + b[0]) / 2 - view.stage.getBoundingClientRect().left); pinch = dist; }
       else if (view.z > 1 || Math.abs(e.clientX - prev[0]) > Math.abs(e.clientY - prev[1])) { view.x += e.clientX - prev[0]; if (view.z > 1.6) view.y += e.clientY - prev[1]; place(); } });
-    const up = (e) => { pts.delete(e.pointerId); pinch = 0; if (!pts.size && view) view.stage.classList.remove("dragging"); };
+    const up = (e) => { pts.delete(e.pointerId); pinch = 0; if (!pts.size && view && view.stage) view.stage.classList.remove("dragging"); };
     detail.addEventListener("pointerup", up); detail.addEventListener("pointercancel", up);
-    detail.addEventListener("wheel", (e) => { if (!e.ctrlKey || !e.target.closest("#stage") || !view) return; e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - view.stage.getBoundingClientRect().left); }, { passive: false });
-    detail.addEventListener("dblclick", (e) => { if (e.target.closest("#stage") && view && view.mode === "whole") zoomBy(view.z > 1.4 ? 1 / view.z : 2, e.clientX - view.stage.getBoundingClientRect().left); });
-    detail.addEventListener("keydown", (e) => { if (!view || document.activeElement !== view.stage) return; const k = e.key;
+    detail.addEventListener("wheel", (e) => { if (!e.ctrlKey || !e.target.closest("#stage") || !view || !view.stage) return; e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - view.stage.getBoundingClientRect().left); }, { passive: false });
+    detail.addEventListener("dblclick", (e) => { if (e.target.closest("#stage") && view && view.stage && view.mode === "whole") zoomBy(view.z > 1.4 ? 1 / view.z : 2, e.clientX - view.stage.getBoundingClientRect().left); });
+    detail.addEventListener("keydown", (e) => { if (!view || !view.stage || document.activeElement !== view.stage) return; const k = e.key;
       if (k === "+" || k === "=") zoomBy(1.35); else if (k === "-" || k === "_") zoomBy(1 / 1.35); else if (k === "ArrowLeft") { view.x += 60; place(); } else if (k === "ArrowRight") { view.x -= 60; place(); } else if (k === "0") { view.z = 1; view.x = view.y = 0; place(); } else return; e.preventDefault(); });
-    addEventListener("resize", () => { if (view) place(); }); }
+    addEventListener("resize", () => { if (view) place(); document.querySelectorAll("#dProduct canvas").forEach((cv) => { const l = [...lights].find((x) => x.el === cv); if (l) l.api.size($("dProduct").clientWidth); }); }); }
 
   /* ---------- the Cigar of the Year reveal ----------
      One sequence on one clock, so it can be skipped to its end or played again. The room starts dark,
@@ -256,7 +289,7 @@
     const c = BY.get(1), up = seg(2.0, 3.5, t), move = seg(1.0, 3.6, t);
     reveal.style.setProperty("--t", up.toFixed(3));                                   // 0 dark, 1 paper
     reveal.dataset.ph = t < 0.25 ? 0 : t < 1.7 ? 1 : t < 3.5 ? 2 : t < 3.95 ? 3 : t < 4.5 ? 4 : 5;
-    $("rvStage").style.transform = `translate3d(${((1 - move) * 5).toFixed(2)}%,0,0) scale(${(1.1 - 0.1 * move).toFixed(4)})`;
+    $("rvStage").style.transform = `translate3d(${((1 - move) * 3).toFixed(2)}%,0,0) scale(${(1.06 - 0.06 * move).toFixed(4)})`;
     if (rv.light) rv.light.set(-0.25 + 0.9 * seg(1.1, 3.4, t), 0.1, 0.04 + 0.96 * seg(1.5, 3.2, t));
     else $("rvStage").style.opacity = seg(1.5, 3.0, t);
     $("rvScore").textContent = Math.round(c.score - 9 + 9 * (1 - Math.pow(1 - clamp((t - 3.95) / 0.7), 3)));

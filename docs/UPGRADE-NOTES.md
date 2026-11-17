@@ -9,26 +9,47 @@ Screenshots and a recording are in `docs/media/`.
 is last year's published list, it shows all 25 cigars with no sealed states and no reveal-week
 simulator. The earlier dark version is kept at `dark.html`, with the simulator, for comparison.
 
-- **Identity.** Warm white, deep ink, tobacco brown (#4a1b00) and rust (#963700). The last two
-  are taken from cigaraficionado.com's own stylesheet. The masthead is the CA logo. Headlines
-  and reading text are Newsreader; navigation and specifications are Inter.
+- **Identity.** A crisp near-white (#faf9f6), deep ink, tobacco brown (#4a1b00) and rust
+  (#963700). The last two are taken from cigaraficionado.com's own stylesheet. The masthead is
+  the CA logo. Newsreader is used only for headlines, names and rank numerals; introductions,
+  specifications and the review are Inter.
 - **No labels above headings.** Rank and score sit beneath a title or beside the action they
   belong to.
-- **One transformation.** The hero cigar is a single element that travels, as the page scrolls,
-  to its place in the Cigar of the Year section and stays there. Nothing is pinned.
+- **Hero.** Three areas that never overlap: the headline, the introduction with its action,
+  and the product. The cigar is shown level and whole, with room around it, at a width that
+  does not push the 800-pixel photograph past what it can carry.
+- **Where the cigar goes.** The hero says nothing about the cigar. As the page scrolls, the
+  same element settles into the section below, which gives it a name, score, tasting line and
+  its make (wrapper, binder, filler, size). It is not shown a second time. With reduced motion
+  it stays in the hero and the section below omits its image slot.
+- **Cutouts, not blending.** Every photograph that sits in a moving or scaled layer is a true
+  cutout with a drawn shadow. An earlier version relied on `mix-blend-mode: multiply`, which
+  stops working inside a transformed layer and showed the photograph's white background when
+  WebGL was unavailable. Ranking rows still use the original photograph, where blending is
+  reliable and the photographed shadow is kept.
 - **The list.** All 25, each drawn to the same scale, with search, country filter, four orders
   and a saved-only view. Dollar and pound prices are never ranked against each other.
-- **Detail.** Every cigar opens on an inspection table: drawn to scale against an inch ruler,
-  zoom to 300%, drag and keyboard movement, and a view of the band. Then the review.
-- **Reveal.** "Replay the reveal" in the hero and in the Cigar of the Year section plays a
-  4.8-second sequence: the room is dark, a light travels along the cigar while the page comes
-  up to its own paper, then the name and a counting score. Skip, Replay and Close are always
-  available; reduced motion opens on the final frame. `#reveal` or `?reveal` plays it on load.
+- **Detail.** Opens on identity: name, rank and score, a tasting line and the whole cigar,
+  all on the first screen at 390, 1180 and 1440 pixels. The tasting line is one sentence taken
+  verbatim from the review (the one densest in flavour words; a `taste` field in `data.js`
+  overrides it). "Inspect closely" then opens the table with ruler, zoom, drag, keys and the
+  band view; it is built only when asked for.
+- **Reveal.** "Replay the reveal" plays a 4.8-second sequence in the page's own paper and
+  type: dark, a light travelling along the cigar, then the name and a counting score. Skip,
+  Replay and Close are always available; reduced motion opens on the final frame.
 - **Light.** A small WebGL shader draws each large photograph with a light that follows the
-  pointer (or the scroll on touch). Without WebGL the plain photograph is shown.
+  pointer (or the scroll on touch). Without WebGL the cutout is shown.
 - **Photography limits.** The source photographs are 800 × 200 pixels. Nos. 1 and 2 were
-  enlarged 2× with Runway's precision upscaler as stand-ins; the other 23 use the standard
-  set and are softer on the inspection table. The AI-rendered turn is not used on this page.
+  enlarged 2× with Runway's precision upscaler as stand-ins. The winner's photograph is
+  cropped at the foot in the source (roughly 6% of its length), so its foot is a straight
+  edge. The AI-rendered turn is not used on this page.
+
+### Hero verification
+
+`docs/editorial/hero-matrix.jpg` shows the hero at 390, 768, 1180 and 1440 pixels with WebGL,
+without it, and with reduced motion. In all twelve cases a scripted check found no overlap
+between the headline, the introduction block and the cigar; the cigar inside the viewport and
+on the first screen; a cutout as the fallback with no blend mode; and no horizontal overflow.
 
 Not yet carried into this version: the charts, the film strip, the grid view, and the sealed
 states and schedule needed for a real reveal week. Those still exist in `dark.html`.

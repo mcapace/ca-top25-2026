@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Top 25 Cigars of 2026</title>
+<meta name="description" content="Concept prototype: the Cigar Aficionado Top 25 Cigars of 2026 release experience.">
+<meta name="theme-color" content="#0f0b08">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="burnline" aria-hidden="true"><i id="burn"></i></div>
+
+<header class="top" id="top">
+  <div class="wrap top-in">
+    <a class="brand" href="https://www.cigaraficionado.com/" aria-label="Cigar Aficionado home">
+      <img src="assets/ca-logo.png" alt="Cigar Aficionado" width="560" height="112">
+    </a>
+    <span class="brand-tag">Top 25 <em>2026</em></span>
+    <nav class="top-nav" aria-label="Sections">
+      <a href="#coty">Cigar of the Year</a>
+      <a href="#list">The List</a>
+      <a href="#film">On Film</a>
+      <a href="#numbers">By the Numbers</a>
+      <a href="#process">The Process</a>
+    </nav>
+    <button class="humidor-btn" id="humidorBtn" type="button" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 9h18v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9Zm1-4h16a1 1 0 0 1 1 1v3H3V6a1 1 0 0 1 1-1Zm6 8h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span>My Humidor</span><b id="humidorCount">0</b>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <canvas id="smoke" aria-hidden="true"></canvas>
+    <div class="hero-veil" aria-hidden="true"></div>
+    <div class="wrap hero-in">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span><span id="heroEyebrow">Reveal week · December 14–18</span></p>
+        <h1>The Top <span class="n25">25</span> Cigars <span class="of">of</span> 2026</h1>
+        <p class="lede">Every year our editors go back to the highest-scoring cigars, buy them again and smoke them blind. Twenty-five make the list. One becomes Cigar of the Year.</p>
+        <div class="hero-cta">
+          <a class="btn btn-ember" href="#list">See what's been revealed</a>
+          <button class="btn btn-ghost" id="icsBtn" type="button">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm7 7v5m-2.5-2.5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Add reveal dates to calendar
+          </button>
+        </div>
+      </div>
+
+      <aside class="clock" aria-label="Next reveal">
+        <p class="clock-k" id="clockKicker">Next reveal</p>
+        <p class="clock-title" id="clockTitle"></p>
+        <p class="clock-when" id="clockWhen"></p>
+        <div class="clock-digits" id="clockDigits" role="timer" aria-live="off">
+          <div><b id="cdD">00</b><span>days</span></div>
+          <div><b id="cdH">00</b><span>hours</span></div>
+          <div><b id="cdM">00</b><span>min</span></div>
+          <div><b id="cdS">00</b><span>sec</span></div>
+        </div>
+        <p class="clock-sponsor">Presented by <span class="slot">Sponsor slot</span></p>
+      </aside>
+    </div>
+
+    <div class="wrap">
+      <div class="ladder" aria-label="Reveal progress">
+        <div class="ladder-head">
+          <p><b id="revCount">0</b> of 25 revealed</p>
+          <p class="ladder-hint">Tap a number to jump to it</p>
+        </div>
+        <ol class="ladder-ticks" id="ladder"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCHEDULE -->
+  <section class="schedule" aria-labelledby="schedH">
+    <div class="wrap">
+      <h2 class="sr" id="schedH">Reveal schedule</h2>
+      <ol class="sched" id="sched"></ol>
+    </div>
+  </section>
+
+  <!-- CIGAR OF THE YEAR -->
+  <section class="coty" id="coty" aria-labelledby="cotyH">
+    <div class="wrap" id="cotyStage"></div>
+  </section>
+
+  <!-- THE LIST -->
+  <section class="list" id="list" aria-labelledby="listH">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">The countdown</p>
+        <h2 id="listH">The list, as it opens</h2>
+        <p class="sec-sub" id="listSub"></p>
+      </div>
+
+      <div class="tools" id="tools">
+        <label class="search">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span class="sr">Search revealed cigars</span>
+          <input id="q" type="search" placeholder="Search brand, country, wrapper…" autocomplete="off">
+        </label>
+        <div class="chips" id="countryChips" role="group" aria-label="Filter by country"></div>
+        <label class="sort">
+          <span>Sort</span>
+          <select id="sort">
+            <option value="rank">Rank</option>
+            <option value="score">Score</option>
+            <option value="price">Price, low to high</option>
+            <option value="length">Length</option>
+            <option value="strength">Strength</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="rows" id="rows"></div>
+    </div>
+  </section>
+
+  <!-- ON FILM -->
+  <section class="film" id="film" aria-labelledby="filmH">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">On film</p>
+        <h2 id="filmH">The top 10, in the tasting room</h2>
+        <p class="sec-sub">Each of the top 10 gets a short film with the editors who rated it. They open with the cigar.</p>
+      </div>
+    </div>
+    <div class="reel" id="reel" tabindex="0" aria-label="Top 10 videos"></div>
+  </section>
+
+  <!-- BY THE NUMBERS -->
+  <section class="numbers" id="numbers" aria-labelledby="numH">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">By the numbers</p>
+        <h2 id="numH">The shape of the list so far</h2>
+        <p class="sec-sub">These charts only count cigars that have been revealed. They fill in as the week goes on.</p>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="charts">
+        <figure class="chart">
+          <figcaption><h3>Where they're made</h3><p>Revealed cigars by factory country</p></figcaption>
+          <div id="chartCountry" class="bars"></div>
+        </figure>
+        <figure class="chart">
+          <figcaption><h3>Score against price</h3><p>U.S. suggested retail per cigar. Cuban cigars are priced in pounds and left out.</p></figcaption>
+          <div id="chartScatter" class="scatter"></div>
+        </figure>
+        <figure class="chart chart-wide">
+          <figcaption><h3>Sized up</h3><p>Length and ring gauge drawn to the same scale, in each wrapper's own shade. Tap one to open it.</p></figcaption>
+          <div id="chartSizes" class="sizes"></div>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="adslot" aria-label="Advertising position"><span>Advertisement</span><b>Billboard 970 × 250</b><span>keeps its place as the list opens</span></div></div>
+
+  <!-- PROCESS -->
+  <section class="process" id="process" aria-labelledby="procH">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">The Top 25 process</p>
+        <h2 id="procH">How a cigar makes the list</h2>
+      </div>
+      <ol class="steps">
+        <li><img src="assets/step1.png" alt="" width="438" height="438" loading="lazy"><span>Step 1</span><p>We review the year's highest-scoring cigars and assemble a new tasting of only those.</p></li>
+        <li><img src="assets/step2.png" alt="" width="438" height="438" loading="lazy"><span>Step 2</span><p>We buy them again, re-band them and smoke them blind.</p></li>
+        <li><img src="assets/step3.png" alt="" width="438" height="438" loading="lazy"><span>Step 3</span><p>The top scorers are smoked against each other over multiple rounds.</p></li>
+        <li><img src="assets/step4.png" alt="" width="438" height="438" loading="lazy"><span>Step 4</span><p>A new list of 25 cigars is assembled.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ALERTS + MORE -->
+  <section class="more" aria-labelledby="moreH">
+    <div class="wrap more-grid">
+      <form class="alerts" id="alertForm" novalidate>
+        <p class="kicker">Reveal alerts</p>
+        <h2 id="moreH">Get each cigar the minute it opens</h2>
+        <p>One email per reveal, five in all, then we stop.</p>
+        <div class="alerts-row">
+          <label class="sr" for="email">Email address</label>
+          <input id="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+          <button class="btn btn-ember" type="submit">Notify me</button>
+        </div>
+        <p class="alerts-msg" id="alertMsg" role="status"></p>
+      </form>
+      <div class="more-cards">
+        <a class="mcard" href="https://www.cigaraficionado.com/top25/2025/bestbuys">
+          <span class="kicker">Opens Friday with Nos. 11–25</span>
+          <h3>Best Buys of 2026</h3>
+          <p>There are still bargains in the world of handmade cigars, if you know where to look.</p>
+        </a>
+        <a class="mcard" href="https://www.cigaraficionado.com/video/category/WsONAPx1/top-25">
+          <span class="kicker">Video</span>
+          <h3>Every Top 25 film</h3>
+          <p>The full library of Top 25 videos from past years.</p>
+        </a>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="archive">
+        <h3>Top 25 archive</h3>
+        <ul id="archive"></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <img src="assets/ca-logo.png" alt="Cigar Aficionado" width="560" height="112" loading="lazy">
+    <p><b>Concept prototype.</b> The 2025 list stands in for 2026 content, and the reveal dates are a proposed schedule. Alerts and the sponsor and advertising positions are placeholders. In production the list would sit behind the same server-side release gate as the Top 20.</p>
+  </div>
+</footer>
+
+<!-- DETAIL DRAWER -->
+<dialog class="drawer" id="drawer" aria-labelledby="dName">
+  <div class="drawer-in" id="drawerIn"></div>
+</dialog>
+
+<!-- HUMIDOR -->
+<dialog class="drawer drawer-humidor" id="humidor" aria-labelledby="hTitle">
+  <div class="drawer-in" id="humidorIn"></div>
+</dialog>
+
+<!-- CIGAR OF THE YEAR TAKEOVER -->
+<div class="takeover" id="takeover" hidden>
+  <canvas id="sparks" aria-hidden="true"></canvas>
+  <div class="takeover-in" id="takeoverIn"></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- PRESENTER BAR -->
+<div class="sim" id="sim">
+  <button class="sim-toggle" id="simToggle" type="button" aria-expanded="true" aria-controls="simBody">
+    <span class="sim-dot" aria-hidden="true"></span>Prototype
+  </button>
+  <div class="sim-body" id="simBody">
+    <span class="sim-label">Simulate reveal week</span>
+    <div class="sim-stages" id="simStages" role="group" aria-label="Simulated reveal stage"></div>
+    <button class="sim-play" id="simPlay" type="button">▶ Play the week</button>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

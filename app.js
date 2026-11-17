@@ -67,8 +67,8 @@
   /* ---------- hero: clock, ladder ---------- */
   function renderHero() {
     const next = RELEASES[state.stage];
-    const n = revealed().length;
-    $("revCount").textContent = n;
+    const rev = revealed();
+    $("revCount").textContent = rev.length;
     $("heroEyebrow").textContent = state.stage === 0 ? "Reveal week begins December 14" : state.stage === 5 ? "The complete list" : `Reveal week · Day ${state.stage} of 5`;
     const clock = document.querySelector(".clock");
     clock.classList.toggle("done", !next);
@@ -77,14 +77,21 @@
       $("clockTitle").textContent = next.title;
       $("clockWhen").textContent = `${next.day} · ${TIME}`;
     } else {
-      $("clockKicker").textContent = "The list is complete";
-      $("clockTitle").textContent = "All 25, revealed";
+      $("clockKicker").textContent = "Complete";
+      $("clockTitle").textContent = "All 25 are revealed";
       $("clockWhen").textContent = `Cigar of the Year: ${BY_RANK.get(1).name}`;
     }
     $("ladder").innerHTML = Array.from({ length: 25 }, (_, i) => 25 - i).map((rank) => {
       const on = isOpen(rank), nx = !on && RELEASE_OF.get(rank) === state.stage;
-      return `<li><button type="button" data-jump="${rank}" class="${on ? "on" : ""}${on && rank === 1 ? " coty" : ""}${nx ? " next" : ""}${state.fresh.has(rank) ? " pop" : ""}" style="--i:${state.fresh.has(rank) ? [...state.fresh].sort((a, b) => b - a).indexOf(rank) : 0}" aria-label="No. ${rank}, ${on ? "revealed" : "sealed"}">${rank}</button></li>`;
+      return `<li><button type="button" data-jump="${rank}" class="${on ? "on" : ""}${on && rank === 1 ? " coty" : ""}${nx ? " next" : ""}" aria-label="No. ${rank}, ${on ? "revealed" : "sealed"}">${rank}</button></li>`;
     }).join("");
+    // The procession: the ten best cigars revealed so far, in countdown order, as real photographs.
+    // Before the first reveal there is nothing to show, so it carries the numbers that open next.
+    const shown = [...rev].sort((a, b) => b.rank - a.rank).slice(-10);
+    $("heroRail").innerHTML = shown.length
+      ? shown.map((c) => `<figure><img src="assets/c${c.rank}.webp" alt="" width="1400" height="350" ${c === shown[0] ? 'fetchpriority="high"' : 'loading="lazy"'}><figcaption><b>${c.rank}</b>${esc(c.name)}</figcaption></figure>`).join("")
+      : RELEASES[0].ranks.map((k) => `<figure class="num"><span>${k}</span><figcaption>Opens ${RELEASES[0].day}</figcaption></figure>`).join("");
+    $("hero").classList.toggle("is-empty", !shown.length);
   }
 
   function renderSched() {
@@ -104,31 +111,34 @@
   }
   function renderCoty() {
     const el = $("cotyStage"), c = BY_RANK.get(1);
+    $("coty").classList.toggle("is-sealed", !isOpen(1));
     if (!isOpen(1)) {
       const r = RELEASES[3];
       el.innerHTML = `<div class="coty-sealed">
-        <div>
-          <p class="kicker">No. 1 · Sealed in glass</p>
-          <h2 id="cotyH">Cigar of the Year <em>2026</em></h2>
-          <p class="when">Opens <b>${r.day}</b> at <b>${TIME}</b>${state.stage <= 3 ? ` · in <b data-cd="3"></b>` : ""}</p>
-          <div class="poll">
-            <p>Call it. Which country makes this year's No. 1?</p>
-            <div class="poll-opts" role="group" aria-label="Your prediction">${POLL.map((p) => `<button type="button" class="chip" data-pick="${p}" aria-pressed="${state.pick === p}">${p}</button>`).join("")}</div>
-            <small id="pollMsg">${state.pick ? `Your call: ${state.pick}. We'll tell you how you did on Thursday.` : "Pick one. We'll tell you how you did when it opens."}</small>
-          </div>
+        <p class="kicker">No. 1 · Sealed</p>
+        <h2 id="cotyH">Cigar of the Year</h2>
+        ${state.stage <= 3 ? `<p class="coty-count" role="timer" aria-live="off" data-cd-big="3"></p>` : ""}
+        <p class="when">Opens ${r.day} at ${TIME}</p>
+        <div class="poll">
+          <p>Call it. Which country makes this year's No. 1?</p>
+          <div class="poll-opts" role="group" aria-label="Your prediction">${POLL.map((p) => `<button type="button" class="chip" data-pick="${p}" aria-pressed="${state.pick === p}">${p}</button>`).join("")}</div>
+          <small id="pollMsg">${state.pick ? `Your call: ${state.pick}. We'll tell you how you did on Thursday.` : "Pick one. We'll tell you how you did when it opens."}</small>
         </div>
-        <div class="seal3d" id="seal3d" aria-hidden="true"><div class="seal"><div><b>1</b><span>Cigar of the Year<br>Sealed</span></div></div><small>Sealed in glass · drag to turn</small></div>
       </div>`;
-      mount3d();
       return;
     }
     const called = state.pick ? (state.pick === c.country ? `You called it: ${c.country}.` : `You picked ${state.pick}. It went to ${c.country}.`) : "";
-    el.innerHTML = `<div class="coty-open${state.fresh.has(1) ? " fresh-coty" : ""}">
-      <div class="coty-top">
-        <div><p class="kicker">No. 1 · Cigar of the Year 2026</p><h2 id="cotyH">${esc(c.name)}</h2></div>
-        <div class="coty-score"><b>${c.score}</b><span>points</span></div>
+    // Where a turn sequence exists, scrolling through the feature turns the cigar from foot-on to its profile.
+    el.innerHTML = `<div class="coty-open">
+      <div class="coty-turn" id="cotyTurn">
+        <div class="coty-stage">
+          <div class="coty-top">
+            <div><p class="kicker">No. 1 · Cigar of the Year 2026</p><h2 id="cotyH">${esc(c.name)}</h2></div>
+            <div class="coty-score"><b>${c.score}</b><span>points</span></div>
+          </div>
+          <button class="coty-photo" type="button" data-open="1" aria-label="Open the full review of ${esc(c.name)}"><img id="cotyImg" src="assets/c1.webp" alt="${esc(c.name)}" width="1400" height="350"></button>
+        </div>
       </div>
-      <button class="coty-photo" type="button" data-open="1" aria-label="Open the full review of ${esc(c.name)}"><img src="assets/c1.webp" alt="${esc(c.name)}" width="1400" height="350"></button>
       <div class="coty-bottom">
         <div>
           <p class="coty-note">${esc(c.note[0])}</p>
@@ -137,11 +147,12 @@
             ${c.video ? `<a class="btn btn-line" href="https://www.cigaraficionado.com/video/${c.video}" target="_blank" rel="noopener">${ICON.play} Watch the film</a>` : ""}
             <button class="btn btn-line" type="button" data-save="1" aria-pressed="${state.saved.has(1)}">${ICON.box} <span>${state.saved.has(1) ? "In my humidor" : "Add to my humidor"}</span></button>
           </div>
-          ${called ? `<p style="margin-top:16px;font-weight:600;color:var(--red)">${esc(called)}</p>` : ""}
+          ${called ? `<p class="coty-called">${esc(called)}</p>` : ""}
         </div>
         ${factsGrid(c)}
       </div>
     </div>`;
+    preloadSpin(); cotyScroll();
   }
 
   /* ---------- the list ---------- */
@@ -216,7 +227,7 @@
       // One place per rank, always in rank order. A sealed place shows its number and opening day and nothing else.
       const match = (c) => (state.country === "All" || c.country === state.country) && (!q || `${c.name} ${c.country} ${c.maker} ${c.wrapper} ${c.strength}`.toLowerCase().includes(q));
       const day = (rank) => RELEASES[RELEASE_OF.get(rank)].day.replace(/^(\w{3})\w*, December/, "$1, Dec.");
-      html = `<div class="cabinet"><div class="cab-lid"><span class="cab-plate">The Collector's Humidor</span><span class="cab-count">${rev.length} of 25 open</span></div><ol class="cab-grid">${CIGARS.map((c) => isOpen(c.rank)
+      html = `<div class="cabinet"><div class="cab-lid"><span class="cab-plate">All 25 places</span><span class="cab-count">${rev.length} open</span></div><ol class="cab-grid">${CIGARS.map((c) => isOpen(c.rank)
         ? `<li><button type="button" class="slot is-open${match(c) ? "" : " dim"}${state.fresh.has(c.rank) ? " fresh" : ""}${c.rank === 1 ? " is-coty" : ""}" data-open="${c.rank}" style="--tint:${c.tint}" aria-label="No. ${c.rank}, ${esc(c.name)}, ${c.score} points. Open the review.">
             <span class="plate">No. ${c.rank}</span><span class="slot-score">${c.score}</span>
             <span class="slot-photo"><img src="assets/c${c.rank}.webp" alt="" width="1400" height="350" loading="lazy"></span>
@@ -248,7 +259,7 @@
     const top = [...counts].sort((a, b) => b[1] - a[1]);
     const avg = rev.length ? (rev.reduce((s, c) => s + c.score, 0) / rev.length).toFixed(1) : "—";
     $("stats").innerHTML = [
-      [`${rev.length}<small style="font-size:.5em;color:var(--smoke)"> / 25</small>`, "Revealed"],
+      [`${rev.length}<small style="color:var(--smoke)"> / 25</small>`, "Revealed"],
       [avg, "Average score"],
       [med == null ? "—" : `$${med.toFixed(2)}`, "Median U.S. price"],
       [top.length ? esc(top[0][0]) : "—", top.length ? `Most cigars so far (${top[0][1]})` : "Leading country"],
@@ -310,9 +321,13 @@
       </svg><div class="tip" id="tip" hidden></div>`;
     }
 
-    $("chartSizes").innerHTML = rev.length ? [...rev].sort((a, b) => b.len - a.len || b.ring - a.ring || a.rank - b.rank).map((c) =>
-      `<button type="button" class="size${off(c)}" data-open="${c.rank}" data-rank="${c.rank}" style="--len:${c.len};--ring:${c.ring};--tint:${c.tint}" aria-label="No. ${c.rank}, ${esc(c.name)}, ${fmtSize(c)}">
-        <span class="shape"></span><span class="lab"><b>No. ${c.rank} · ${esc(c.name)}</b><span>${fmtSize(c)}</span></span></button>`).join("") : none;
+    const longest = Math.max(7, ...rev.map((c) => c.len));
+    $("chartSizes").innerHTML = rev.length ? [...rev].sort((a, b) => b.len - a.len || b.ring - a.ring || a.rank - b.rank).map((c) => {
+      const x0 = c.prof[0][0], span = c.prof[c.prof.length - 1][0] - x0, w = (c.len / longest / span) * 100;
+      return `<button type="button" class="size${off(c)}" data-open="${c.rank}" data-rank="${c.rank}" aria-label="No. ${c.rank}, ${esc(c.name)}, ${fmtSize(c)}">
+        <span class="size-photo"><img src="assets/c${c.rank}.webp" alt="" loading="lazy" style="width:${w.toFixed(2)}%;margin-left:${(-x0 * w).toFixed(2)}%"></span>
+        <span class="lab"><b>${c.rank}</b><span class="nm">${esc(c.name)}</span><span>${fmtSize(c)}</span></span></button>`;
+    }).join("") : none;
   }
 
   /* ---------- drawers ---------- */
@@ -346,7 +361,7 @@
       </div>
       <div class="d-head">
         <div><p class="d-rank">No. ${c.rank}${c.rank === 1 ? " · Cigar of the Year" : ""}</p><h2 id="dName">${esc(c.name)}</h2><p class="d-origin">${esc(c.maker)} · ${esc(c.country)}</p></div>
-        <div class="d-score"><div><b>${c.score}</b><br><span>points</span></div></div>
+        <div class="d-score"><b>${c.score}</b><br><span>points</span></div>
       </div>
       <div class="d-photo" id="dPhoto"><img src="assets/c${c.rank}.webp" alt="${esc(c.name)}" width="1400" height="350"></div>
       <div class="d-turn" id="dTurn" hidden>
@@ -354,7 +369,7 @@
         <small>Built from the one photograph, so the far side is a mirror image.</small>
       </div>
       <div class="d-acts">
-        ${stage || c.spin ? `<button class="pill" type="button" id="turnBtn" aria-pressed="false" aria-controls="dTurn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 12c0-2.2 3.6-4 8-4s8 1.8 8 4-3.6 4-8 4m0 0 2.5-2.5M12 16l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>${c.spin ? "Turn it" : "Turn it in 3D"}</span></button>` : ""}
+        ${has3d || c.spin ? `<button class="pill" type="button" id="turnBtn" aria-pressed="false" aria-controls="dTurn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 12c0-2.2 3.6-4 8-4s8 1.8 8 4-3.6 4-8 4m0 0 2.5-2.5M12 16l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>${c.spin ? "Turn it" : "Turn it in 3D"}</span></button>` : ""}
         <button class="pill" type="button" data-save="${c.rank}" aria-pressed="${saved}">${ICON.box} <span>${saved ? "In my humidor" : "Add to my humidor"}</span></button>
         ${c.video ? `<a class="pill" href="https://www.cigaraficionado.com/video/${c.video}" target="_blank" rel="noopener">${ICON.play} Watch the film</a>` : ""}
         <button class="pill" type="button" data-share="${c.rank}">${ICON.share} Share</button>
@@ -382,7 +397,7 @@
   $("drawer").addEventListener("click", (e) => {
     const b = e.target.closest("#turnBtn"); if (!b) return;
     const on = b.getAttribute("aria-pressed") !== "true", sp = BY_RANK.get(state.open).spin;
-    if (!sp && !stage) return;
+    if (!sp && !has3d) return;
     b.setAttribute("aria-pressed", on); b.querySelector("span").textContent = on ? "Back to the photo" : sp ? "Turn it" : "Turn it in 3D"; $("dTurn").hidden = !on;
     if (sp) {                              // a generated frame sequence, where one exists
       const host = $("dPhoto"), rg = $("turnRange");
@@ -391,9 +406,14 @@
       setSpin(sp, 0, !on);
       return;
     }
-    if (on) { stage.setHost("viewer", $("dPhoto")); stage.setViewer(state.open); stage.setViewYaw((+$("turnRange").value * Math.PI) / 180); } else releaseViewer();
+    if (!on) { releaseViewer(); return; }
+    const want = state.open;
+    ensureStage().then((st) => {
+      if (!st) { toast("3D isn't available on this device"); b.setAttribute("aria-pressed", "false"); $("dTurn").hidden = true; return; }
+      if (state.open !== want || b.getAttribute("aria-pressed") !== "true") return;
+      st.setHost("viewer", $("dPhoto")); st.setViewer(want); st.setViewYaw((+$("turnRange").value * Math.PI) / 180);
+    });
   });
-  const spinSrc = (sp, i) => `${sp.dir}/${String(i).padStart(2, "0")}.webp`;
   function setSpin(sp, deg, off) {
     const img = $("dPhoto").querySelector("img"); if (!img) return;
     const i = Math.round(((Math.max(sp.min, Math.min(sp.max, deg)) - sp.min) / (sp.max - sp.min)) * (sp.frames - 1));
@@ -445,53 +465,8 @@
     try { await navigator.clipboard.writeText(`${text} ${url}`); toast("Link copied"); } catch { toast(url); }
   }
 
-  /* ---------- takeover ---------- */
-  let burnRaf;
-  function burnReveal(paper, img) {
-    // Dissolves a dark sealed card into the cigar photo along a noisy, glowing burn line.
-    const cv = document.createElement("canvas"), gl = cv.getContext("webgl", { antialias: false, premultipliedAlpha: false });
-    if (!gl || reduced) return;
-    const vs = "attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}";
-    const fs = `precision mediump float;uniform sampler2D img;uniform float p;uniform vec2 r;varying vec2 uv;
-      float h(vec2 q){return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453);}
-      float n(vec2 q){vec2 i=floor(q),f=fract(q);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}
-      float fbm(vec2 q){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n(q);q=q*2.1+vec2(3.1,7.7);a*=.5;}return s;}
-      void main(){float asp=r.x/r.y;vec3 paper=vec3(.937,.894,.812);vec3 shown=paper*texture2D(img,uv).rgb;
-        vec2 q=(uv-.5)*vec2(asp,1.);float d=length(q)/(.5*length(vec2(asp,1.)));
-        float nz=fbm(uv*vec2(asp,1.)*5.);float f=d*.7+nz*.5;float e=p*1.4-.12;
-        float m=smoothstep(e,e-.025,f);float glow=smoothstep(e+.1,e,f)*(1.-m);
-        vec3 sealed=mix(vec3(.075,.05,.035),vec3(.16,.10,.065),nz)+vec3(.5,.2,.05)*smoothstep(e+.35,e,f)*.25;
-        vec3 c=mix(sealed,shown,m);float ch=smoothstep(e-.09,e-.025,f)*m;c=mix(c,c*vec3(.3,.18,.12),ch);
-        c+=vec3(1.,.42,.1)*glow*1.7+vec3(1.,.92,.7)*pow(glow,5.)*1.2;gl_FragColor=vec4(c,1.);}`;
-    const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o; };
-    const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
-    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
-    const go = () => {
-      try {
-        gl.useProgram(pr);
-        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-        const loc = gl.getAttribLocation(pr, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
-        for (const [k, v] of [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
-      } catch { return; } // e.g. opened from disk, where the photo cannot be read into a texture
-      const dpr = Math.min(2, devicePixelRatio || 1);
-      cv.width = Math.round(paper.clientWidth * dpr); cv.height = Math.round(paper.clientHeight * dpr);
-      gl.viewport(0, 0, cv.width, cv.height);
-      const uP = gl.getUniformLocation(pr, "p"); gl.uniform2f(gl.getUniformLocation(pr, "r"), cv.width, cv.height);
-      paper.classList.add("gl"); paper.appendChild(cv);
-      const t0 = performance.now() + 1400, dur = 2400;
-      const frame = (t) => {
-        const k = Math.max(0, Math.min(1, (t - t0) / dur)), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-        gl.uniform1f(uP, e); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        if (k < 1 && !$("takeover").hidden) burnRaf = requestAnimationFrame(frame);
-      };
-      burnRaf = requestAnimationFrame(frame);
-    };
-    if (img.complete && img.naturalWidth) go(); else img.addEventListener("load", go, { once: true });
-  }
-  const TAKE_END = 5.4;
+  /* ---------- the No. 1 reveal: one seekable sequence ---------- */
+  const TAKE_END = 5.2;
   let take = null;
   function timeline(dur, onFrame, onEnd) {
     let t0 = performance.now(), dead = false, id = 0;
@@ -500,35 +475,36 @@
     return { stop() { dead = true; cancelAnimationFrame(id); }, finish() { if (dead) return; dead = true; cancelAnimationFrame(id); onFrame(dur); onEnd(); } };
   }
   function takeFrame(t) {
-    const el = $("takeover"), c = BY_RANK.get(1);
-    if (stage) stage.setReveal(t);
-    el.dataset.ph = t < 0.25 ? 0 : t < 3.7 ? 1 : t < 4.3 ? 2 : t < 4.9 ? 3 : 4;
-    el.style.setProperty("--lit", ease(1.0, 1.7, t) - ease(3.2, 4.6, t) * 0.35);
-    $("takeScore").textContent = Math.round(c.score - 9 + 9 * (1 - Math.pow(1 - clamp01((t - 4.3) / 0.8), 3)));
+    const el = $("takeover"), c = BY_RANK.get(1), sp = c.spin, img = $("takeImg");
+    el.dataset.ph = t < 0.15 ? 0 : t < 1.0 ? 1 : t < 3.5 ? 2 : t < 4.0 ? 3 : t < 4.5 ? 4 : 5;
+    el.style.setProperty("--w", ease(1.0, 1.75, t));                       // the room goes from black to white
+    const turn = ease(1.5, 3.7, t);
+    if (sp) { const deg = sp.max * (1 - turn), i = Math.round(((deg - sp.min) / (sp.max - sp.min)) * (sp.frames - 1)); const src = spinSrc(sp, i); if (img.getAttribute("src") !== src) img.src = src; }
+    else img.style.clipPath = `inset(0 ${(1 - turn) * 100}% 0 0)`;
+    img.style.opacity = ease(1.45, 1.9, t); img.style.transform = `scale(${1.1 - 0.1 * turn})`;
+    $("takeScore").textContent = Math.round(c.score - 9 + 9 * (1 - Math.pow(1 - clamp01((t - 4.0) / 0.8), 3)));
   }
   window.__seekReveal = (t) => { if (take) take.stop(); takeFrame(t); };     // lets tools/ capture the sequence frame by frame
   function playTake(instant) {
     const el = $("takeover");
     if (take) take.stop();
-    cancelAnimationFrame(burnRaf);
-    el.classList.toggle("instant", !!instant); el.classList.toggle("flat", !stage);
-    $("takeSkip").hidden = !!instant; $("takeReplay").hidden = !instant;
+    el.classList.toggle("instant", !!instant);
+    $("takeSkip").hidden = !!instant; $("takeReplay").hidden = !instant || reduced;
     const done = () => { $("takeSkip").hidden = true; $("takeReplay").hidden = reduced; const b = el.querySelector("[data-take=review]"); if (el.contains(document.activeElement) || document.activeElement === document.body) b.focus({ preventScroll: true }); };
-    if (stage) stage.setHost("reveal", $("takeStage"));
     if (instant) { takeFrame(TAKE_END); done(); return; }
-    if (!stage) { const paper = $("takePaper"); paper.classList.remove("gl"); paper.querySelectorAll("canvas").forEach((n) => n.remove()); burnReveal(paper, paper.querySelector("img")); }
     takeFrame(0);
     take = timeline(TAKE_END, takeFrame, done);
   }
   function showTakeover() {
     const c = BY_RANK.get(1), el = $("takeover");
-    $("takeoverIn").innerHTML = `<p class="kicker tk-k">Cigar of the Year 2026</p>
-      <div class="paper tk-flat" id="takePaper"><img src="assets/c1.webp" alt="" width="1400" height="350"></div>
+    $("takeoverIn").innerHTML = `<p class="tk-k">Cigar of the Year 2026</p>
+      <p class="tk-one" aria-hidden="true">1</p>
+      <img class="tk-img" id="takeImg" src="${c.spin ? spinSrc(c.spin, c.spin.frames - 1) : "assets/c1.webp"}" alt="" width="1000" height="365">
       <div class="tk-final">
-        <p class="tk-rank"><span>Rank</span>Number One</p>
+        <p class="tk-rank">No. 1</p>
         <h2 id="takeName" aria-label="${esc(c.name)}">${c.name.split(" ").map((w, i) => `<span style="--w:${i}" aria-hidden="true">${esc(w)}</span>`).join(" ")}</h2>
         <p class="meta"><b id="takeScore">${c.score}</b> points · ${esc(c.country)} · ${fmtSize(c)}</p>
-        <div class="btns"><button class="btn btn-ember" type="button" data-take="review">Read the review</button><button class="btn btn-ghost" type="button" data-take="close">Back to the list</button></div>
+        <div class="btns"><button class="btn btn-ink" type="button" data-take="review">Read the review</button><button class="btn btn-line" type="button" data-take="close">Back to the list</button></div>
       </div>`;
     el.hidden = false;
     for (const n of document.querySelectorAll("body > header, body > main, body > footer, #sim")) n.inert = true;
@@ -536,11 +512,10 @@
     playTake(reduced);
   }
   function hideTakeover(then) {
-    if (take) take.stop(); take = null; cancelAnimationFrame(burnRaf);
+    if (take) take.stop(); take = null;
     $("takeover").hidden = true;
-    if (stage) { stage.setReveal(-1); stage.setHost("reveal", null); }
     for (const n of document.querySelectorAll("body > header, body > main, body > footer, #sim")) n.inert = false;
-    if (then === "review") openDrawer(1); else { $("coty").scrollIntoView({ behavior: reduced ? "auto" : "smooth" }); const b = document.querySelector('#coty [data-open="1"]'); if (b) b.focus({ preventScroll: true }); }
+    if (then === "review") openDrawer(1); else { $("coty").scrollIntoView({ behavior: reduced ? "auto" : "smooth" }); const b = document.querySelector('#coty .coty-actions [data-open="1"]'); if (b) b.focus({ preventScroll: true }); }
   }
   $("takeSkip").addEventListener("click", () => { if (take) take.finish(); });
   $("takeReplay").addEventListener("click", () => { playTake(false); $("takeSkip").hidden = false; $("takeReplay").hidden = true; $("takeSkip").focus({ preventScroll: true }); });
@@ -574,16 +549,16 @@
       const first = Math.min(...state.fresh);
       const el = $(`no-${first}-row`); if (el) el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" });
       toast(`${RELEASES[state.stage - 1].title} just opened`);
-      if (!reduced) { const f = document.createElement("div"); f.className = "flash"; document.body.appendChild(f); setTimeout(() => f.remove(), 1400); }
     }
     if (state.open && !isOpen(state.open)) { releaseViewer(); $("drawer").close(); }
   }
-  function renderAll() { renderHero(); renderSched(); renderCoty(); renderList(); renderReel(); renderNumbers(); renderHumidor(); renderSim(); tick(); heroScroll(); if (stage && state.stage >= 3) stage.preload(1); }
+  function renderAll() { renderHero(); renderSched(); renderCoty(); renderList(); renderReel(); renderNumbers(); renderHumidor(); renderSim(); tick(); heroScroll(); if (state.stage >= 3) preloadSpin(); }
 
   function tick() {
     const t = now(), next = RELEASES[state.stage];
     if (next) { const p = parts(Date.parse(next.at) - t); $("cdD").textContent = pad(p.d); $("cdH").textContent = pad(p.h); $("cdM").textContent = pad(p.m); $("cdS").textContent = pad(p.s); }
     document.querySelectorAll("[data-cd]").forEach((el) => { el.textContent = cdText(Date.parse(RELEASES[+el.dataset.cd].at) - t); });
+    document.querySelectorAll("[data-cd-big]").forEach((el) => { const p = parts(Date.parse(RELEASES[+el.dataset.cdBig].at) - t); el.innerHTML = `${p.d ? `<span>${p.d}<i>d</i></span>` : ""}<span>${pad(p.h)}<i>h</i></span><span>${pad(p.m)}<i>m</i></span><span>${pad(p.s)}<i>s</i></span>`; });
   }
   setInterval(tick, 1000);
 
@@ -681,112 +656,57 @@
   let ticking = false;
   addEventListener("scroll", () => {
     if (ticking) return; ticking = true;
-    requestAnimationFrame(() => { const h = document.documentElement; $("burn").style.width = `${Math.min(100, (h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)) * 100)}%`; ticking = false; });
+    requestAnimationFrame(() => { const h = document.documentElement; if ($("burn")) $("burn").style.width = `${Math.min(100, (h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)) * 100)}%`; ticking = false; });
   }, { passive: true });
 
-  /* ---------- smoke (WebGL) ---------- */
-  (function smoke() {
-    const cv = $("smoke"), gl = cv.getContext("webgl", { antialias: false, alpha: false, powerPreference: "low-power" });
-    if (!gl) { cv.style.background = "radial-gradient(60% 60% at 70% 40%, #3a2416, #0f0b08 70%)"; return; }
-    const vs = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
-    const fs = `precision mediump float;uniform vec2 r;uniform float t;
-      float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-      float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}
-      float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return s;}
-      void main(){vec2 uv=gl_FragCoord.xy/r;vec2 p=vec2(uv.x*r.x/r.y,uv.y)*2.4;p.y-=t*.07;
-        vec2 q=vec2(fbm(p+t*.035),fbm(p+vec2(5.2,1.3)-t*.025));
-        float f=fbm(p+2.4*q);float w=smoothstep(.38,.9,f);
-        float side=smoothstep(.15,.95,uv.x);
-        vec3 c=mix(vec3(.059,.043,.031),vec3(.62,.5,.4),w*.42*(.45+.55*side));
-        vec2 a=vec2(.78+.1*sin(t*.11),.72+.12*cos(t*.09)),b=vec2(.16+.1*cos(t*.07),.2+.1*sin(t*.1));
-        c+=vec3(.9,.36,.12)*.2*exp(-7.*dot(uv-a,uv-a))+vec3(.78,.6,.3)*.14*exp(-6.*dot(uv-b,uv-b));
-        c+=vec3(.95,.36,.1)*pow(1.-uv.y,4.)*.12*(.5+.8*q.x);
-        gl_FragColor=vec4(c,1.);}`;
-    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
-    const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
-    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { cv.style.background = "radial-gradient(60% 60% at 70% 40%, #3a2416, #0f0b08 70%)"; return; }
-    gl.useProgram(pr);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(pr, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const uR = gl.getUniformLocation(pr, "r"), uT = gl.getUniformLocation(pr, "t");
-    const size = () => { const s = Math.min(1, 720 / cv.clientWidth); cv.width = Math.max(2, Math.round(cv.clientWidth * s)); cv.height = Math.max(2, Math.round(cv.clientHeight * s)); gl.viewport(0, 0, cv.width, cv.height); };
-    let visible = true, raf;
-    const frame = (ms) => { if (document.documentElement.classList.contains("lite")) return; gl.uniform2f(uR, cv.width, cv.height); gl.uniform1f(uT, ms / 1000 + 40); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); if (visible && !reduced) raf = requestAnimationFrame(frame); };
-    size(); frame(0);
-    new ResizeObserver(() => { size(); if (reduced) frame(0); }).observe(cv);
-    document.addEventListener("visibilitychange", () => { const was = visible; visible = !document.hidden; if (visible && !was && !reduced) { cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); } });
-  })();
-
-  /* ---------- the shared 3D stage (stage3d.js), loaded after first paint ---------- */
-  let stage = null;                      // null: not loaded yet, false: unavailable, object: running
-  const no3d = new URLSearchParams(location.search).has("no3d");
-  function mount3d() {
-    const host = $("seal3d");
-    if (!stage) return;
-    stage.setHost("sealed", host || null);
-    if (!host || host.dataset.bound) return;
-    host.dataset.bound = "1";
-    let dragX = null;
-    host.addEventListener("pointerdown", (e) => { dragX = e.clientX; });
-    host.addEventListener("pointermove", (e) => { if (dragX !== null) { stage.nudge("sealed", e.clientX - dragX); dragX = e.clientX; } });
-    for (const ev of ["pointerup", "pointerleave", "pointercancel"]) host.addEventListener(ev, () => { dragX = null; });
+  /* ---------- 3D viewer (stage3d.js): fetched only when someone asks to turn a cigar ---------- */
+  let stage = null, stageLoad = null;
+  const has3d = !new URLSearchParams(location.search).has("no3d") && (() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; } })();
+  function ensureStage() {
+    if (!has3d) return Promise.resolve(null);
+    if (!stageLoad) stageLoad = import("./stage3d.js").then((m) => (stage = m.createStage({ cigars: CIGARS, reduced }))).catch(() => null);
+    return stageLoad;
   }
-  function loadStage() {
-    if (stage !== null) return;
-    const probe = document.createElement("canvas");
-    if (no3d || !(probe.getContext("webgl2") || probe.getContext("webgl"))) { stage = false; document.documentElement.classList.add("no-3d"); return; }
-    import("./stage3d.js").then((m) => {
-      stage = m.createStage({ cigars: CIGARS, reduced });
-      window.__stage = stage;            // for tools/ scripts that render posters
-      stage.setHost("hero", $("heroStage")); stage.setHero(heroP); mount3d();
-      if (state.stage >= 3) stage.preload(1);
-    }).catch(() => { stage = false; document.documentElement.classList.add("no-3d"); });
-  }
-  if (document.readyState === "complete") setTimeout(loadStage, 200); else addEventListener("load", () => setTimeout(loadStage, 200));
 
-  // Slow device guard: if the page cannot hold about 30 frames a second once everything is running,
-  // drop the costly decoration (live blur, the ambient smoke shader, the hero film, high pixel ratio).
-  function watchFrames() {
-    if (reduced || document.hidden || new URLSearchParams(location.search).has("full")) return;
-    const gaps = []; let last = 0;
-    const tick = (t) => { if (last) gaps.push(t - last); last = t; if (gaps.length < 24) requestAnimationFrame(tick); else {
-      gaps.sort((a, b) => a - b);
-      if (gaps[12] > 34) { document.documentElement.classList.add("lite"); const v = $("heroVideo"); if (v) v.pause(); if (stage) stage.lowQuality(); }
-    } };
-    requestAnimationFrame(tick);
-  }
-  addEventListener("load", () => setTimeout(watchFrames, 1800));
-
-  /* ---------- hero: a scroll-linked sequence. The page scrolls normally; a tall
-     track holds a sticky stage, and progress through the track drives everything. ---------- */
+  /* ---------- scroll sequences. The page always scrolls natively: tall tracks hold
+     sticky stages, and progress through each track drives what is on its stage. ---------- */
   let heroP = 0;
   const clamp01 = (v) => Math.max(0, Math.min(1, v));
   const ease = (a, b, v) => { const k = clamp01((v - a) / (b - a)); return k * k * (3 - 2 * k); };
+  const headerH = () => document.querySelector(".top").offsetHeight;
+  const fxOn = () => !reduced && innerHeight >= 560;
   function heroScroll() {
-    const track = $("hero"), pin = $("heroPin"), copy = $("heroCopy"), col = $("heroCollection");
-    const fx = !reduced && innerHeight >= 560;          // too short a window gets the plain section
+    const track = $("hero"), pin = $("heroPin"), copy = $("heroCopy"), col = $("heroCollection"), rail = $("heroRail");
+    const fx = fxOn();
     document.documentElement.classList.toggle("hero-fx", fx);
     const r = track.getBoundingClientRect(), travel = r.height - pin.offsetHeight;
-    heroP = fx && travel > 0 ? clamp01((document.querySelector(".top").offsetHeight - r.top) / travel) : 0;
-    if (fx) {
-      const out = ease(0.2, 0.44, heroP), inn = ease(0.62, 0.86, heroP);
-      copy.style.opacity = 1 - out; copy.style.transform = `translate3d(0,${-out * 40}px,0)`; copy.inert = out > 0.6;
-      col.style.opacity = inn; col.style.transform = `translate3d(0,${(1 - inn) * 46}px,0)`; col.inert = inn < 0.4;
-      $("scrollCue").style.opacity = 1 - ease(0.02, 0.12, heroP);
-      $("heroStage").style.opacity = 1 - ease(0.84, 1, heroP) * 0.75;
-    } else { for (const e of [copy, col]) { e.style.opacity = ""; e.style.transform = ""; e.inert = false; } }
-    if (stage) stage.setHero(heroP);
+    heroP = fx && travel > 0 ? clamp01((headerH() - r.top) / travel) : 0;
+    if (!fx) { for (const e of [copy, col, rail]) { e.style.opacity = ""; e.style.transform = ""; e.inert = false; } return; }
+    const out = ease(0.3, 0.52, heroP), inn = ease(0.74, 0.92, heroP);
+    copy.style.opacity = 1 - out; copy.style.transform = `translate3d(0,${-out * 48}px,0)`; copy.inert = out > 0.6;
+    col.style.opacity = inn; col.style.transform = `translate3d(0,${(1 - inn) * 40}px,0)`; col.inert = inn < 0.4;
+    const start = innerWidth * 0.5, end = -Math.max(0, rail.scrollWidth - innerWidth * 0.55);
+    rail.style.transform = `translate3d(${start + (end - start) * clamp01(heroP / 0.86)}px,0,0)`;
+    rail.style.opacity = 1 - ease(0.78, 0.92, heroP);
+    $("scrollCue").style.opacity = 1 - ease(0.02, 0.1, heroP);
   }
-  addEventListener("scroll", heroScroll, { passive: true }); addEventListener("resize", heroScroll);
-
-  // pointer tilt for the big photographs
-  document.addEventListener("pointermove", (e) => {
-    const el = e.target.closest && e.target.closest(".coty-photo") && e.target.closest(".coty-photo").querySelector("img");
-    if (!el || reduced) return;
-    const r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-    el.style.setProperty("--ry", `${Math.max(-1, Math.min(1, x)) * 9}deg`); el.style.setProperty("--rx", `${Math.max(-1, Math.min(1, y)) * -9}deg`);
-  }, { passive: true });
-  if (reduced) { const hv = $("heroVideo"); if (hv) { hv.removeAttribute("autoplay"); hv.pause(); } }
+  const spinSrc = (sp, i) => `${sp.dir}/${String(i).padStart(2, "0")}.webp`;
+  let spinLoaded = false;
+  function preloadSpin() { const sp = BY_RANK.get(1).spin; if (!sp || spinLoaded || reduced) return; spinLoaded = true; for (let i = 0; i < sp.frames; i++) new Image().src = spinSrc(sp, i); }
+  function cotyScroll() {
+    const track = $("cotyTurn"), img = $("cotyImg"), sp = BY_RANK.get(1).spin;
+    if (!track || !img) return;
+    const fx = fxOn() && !!sp;
+    track.classList.toggle("fx", fx);
+    if (!fx) return;
+    const r = track.getBoundingClientRect(), travel = r.height - track.firstElementChild.offsetHeight;
+    const p = travel > 0 ? clamp01((headerH() - r.top) / travel) : 1;
+    const deg = sp.max * (1 - ease(0.04, 0.9, p)), i = Math.round(((deg - sp.min) / (sp.max - sp.min)) * (sp.frames - 1)), src = spinSrc(sp, i);
+    if (img.getAttribute("src") !== src) img.src = src;
+  }
+  let scrollQueued = false;
+  const onScroll = () => { if (scrollQueued) return; scrollQueued = true; requestAnimationFrame(() => { scrollQueued = false; heroScroll(); cotyScroll(); }); };
+  addEventListener("scroll", onScroll, { passive: true }); addEventListener("resize", onScroll);
 
   /* ---------- boot ---------- */
   const fromUrl = new URLSearchParams(location.search).get("stage");

@@ -5,16 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Top 25 Cigars of 2026</title>
 <meta name="description" content="Concept prototype: the Cigar Aficionado Top 25 Cigars of 2026 release experience.">
-<meta name="theme-color" content="#0f0b08">
-<link rel="preload" as="image" href="assets/tube-poster.webp" media="(min-width: 761px)" fetchpriority="high">
+<meta name="theme-color" content="#ffffff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<canvas id="smoke" aria-hidden="true"></canvas>
-<div class="burnline" aria-hidden="true"><i id="burn"></i></div>
 
 <header class="top" id="top">
   <div class="wrap top-in">
@@ -40,48 +37,37 @@
   <!-- HERO -->
   <section class="hero" id="hero">
     <div class="hero-pin" id="heroPin">
-      <video class="hero-video" id="heroVideo" autoplay muted loop playsinline preload="metadata" poster="assets/hero-poster.jpg" aria-hidden="true"><source src="assets/hero.mp4" type="video/mp4"></video>
-      <div class="hero-veil" aria-hidden="true"></div>
-      <div class="hero-stage" id="heroStage" aria-hidden="true"><picture><source media="(max-width: 760px)" srcset="assets/tube-poster-m.webp"><img class="poster" src="assets/tube-poster.webp" alt="" width="1440" height="836" fetchpriority="high"></picture></div>
-
       <div class="wrap hero-in" id="heroCopy">
-        <div class="hero-copy">
-          <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span><span id="heroEyebrow">Reveal week · December 14–18</span></p>
-          <h1>The Top <span class="n25">25</span> Cigars <span class="of">of</span> 2026</h1>
-          <p class="lede">Every year our editors go back to the highest-scoring cigars, buy them again and smoke them blind. Twenty-five make the list. One becomes Cigar of the Year.</p>
-          <div class="hero-cta">
-            <a class="btn btn-ember" href="#list">Open the humidor</a>
-            <button class="btn btn-ghost" id="icsBtn" type="button">
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm7 7v5m-2.5-2.5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-              Add reveal dates
-            </button>
-          </div>
+        <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span><span id="heroEyebrow">Reveal week · December 14–18</span></p>
+        <h1>The Top 25 Cigars <span>of 2026</span></h1>
+        <div class="hero-foot">
           <aside class="clock" aria-label="Next reveal">
-            <div class="clock-txt">
-              <p class="clock-k" id="clockKicker">Next reveal</p>
-              <p class="clock-title" id="clockTitle"></p>
-              <p class="clock-when" id="clockWhen"></p>
-            </div>
+            <p class="clock-k" id="clockKicker">Next reveal</p>
+            <p class="clock-title" id="clockTitle"></p>
+            <p class="clock-when" id="clockWhen"></p>
             <div class="clock-digits" id="clockDigits" role="timer" aria-live="off">
-              <div><b id="cdD">00</b><span>days</span></div>
-              <div><b id="cdH">00</b><span>hrs</span></div>
-              <div><b id="cdM">00</b><span>min</span></div>
-              <div><b id="cdS">00</b><span>sec</span></div>
+              <div><b id="cdD">00</b><span>d</span></div>
+              <div><b id="cdH">00</b><span>h</span></div>
+              <div><b id="cdM">00</b><span>m</span></div>
+              <div><b id="cdS">00</b><span>s</span></div>
             </div>
-            <p class="clock-sponsor">Presented by <span class="sponsor-slot">Sponsor slot</span></p>
           </aside>
+          <div class="hero-cta">
+            <a class="btn btn-ink" href="#list">View the list</a>
+            <button class="btn btn-line" id="icsBtn" type="button">Add reveal dates</button>
+            <p class="clock-sponsor">Presented by <span class="sponsor-slot">Sponsor</span></p>
+          </div>
         </div>
       </div>
-
+      <div class="hero-rail" id="heroRail" aria-hidden="true"></div>
       <div class="wrap hero-collection" id="heroCollection">
-        <p class="kicker">The Collector's Humidor</p>
         <h2 class="hc-title">Twenty-five places. <em><span id="revCount">0</span> open.</em></h2>
         <div class="ladder" aria-label="Reveal progress">
           <ol class="ladder-ticks" id="ladder"></ol>
-          <p class="ladder-hint">Choose a number to jump to it</p>
+          <p class="ladder-hint">Choose a number to go to it</p>
         </div>
       </div>
-      <p class="scroll-cue" id="scrollCue" aria-hidden="true"><span></span>Scroll to open</p>
+      <p class="scroll-cue" id="scrollCue" aria-hidden="true">Scroll</p>
     </div>
   </section>
 
@@ -102,8 +88,7 @@
   <section class="list" id="list" aria-labelledby="listH">
     <div class="wrap">
       <div class="sec-head">
-        <p class="kicker">The countdown</p>
-        <h2 id="listH">The list, as it opens</h2>
+                <h2 id="listH">The list</h2>
         <p class="sec-sub" id="listSub"></p>
       </div>
 
@@ -116,7 +101,7 @@
         <div class="chips" id="countryChips" role="group" aria-label="Filter by country"></div>
         <div class="seg" role="group" aria-label="View">
           <button type="button" data-view="list" aria-pressed="true">List</button>
-          <button type="button" data-view="humidor" aria-pressed="false">Humidor</button>
+          <button type="button" data-view="humidor" aria-pressed="false">Grid</button>
         </div>
         <label class="sort">
           <span>Sort</span>
@@ -138,8 +123,7 @@
   <section class="film" id="film" aria-labelledby="filmH">
     <div class="wrap">
       <div class="sec-head">
-        <p class="kicker">On film</p>
-        <h2 id="filmH">The top 10, in the tasting room</h2>
+                <h2 id="filmH">The top 10 on film</h2>
         <p class="sec-sub">Each of the top 10 gets a short film with the editors who rated it. They open with the cigar.</p>
       </div>
     </div>
@@ -150,8 +134,7 @@
   <section class="numbers" id="numbers" aria-labelledby="numH">
     <div class="wrap">
       <div class="sec-head">
-        <p class="kicker">By the numbers</p>
-        <h2 id="numH">The shape of the list so far</h2>
+                <h2 id="numH">By the numbers</h2>
         <p class="sec-sub">These charts only count cigars that have been revealed. They fill in as the week goes on.</p>
       </div>
       <div class="stats" id="stats"></div>
@@ -174,7 +157,7 @@
           <div id="chartScatter" class="scatter"></div>
         </figure>
         <figure class="chart chart-wide">
-          <figcaption><h3>Sized up</h3><p>Length and ring gauge drawn to the same scale, in each wrapper's own shade. Tap one to open it.</p></figcaption>
+          <figcaption><h3>Sized up</h3><p>The photographs, all at one scale, longest first. Choose one to open it.</p></figcaption>
           <div id="chartSizes" class="sizes"></div>
         </figure>
       </div>
@@ -187,14 +170,13 @@
   <section class="process" id="process" aria-labelledby="procH">
     <div class="wrap">
       <div class="sec-head">
-        <p class="kicker">The Top 25 process</p>
-        <h2 id="procH">How a cigar makes the list</h2>
+                <h2 id="procH">How a cigar makes the list</h2>
       </div>
       <ol class="steps">
-        <li><img src="assets/step1.png" alt="" width="438" height="438" loading="lazy"><span>Step 1</span><p>We review the year's highest-scoring cigars and assemble a new tasting of only those.</p></li>
-        <li><img src="assets/step2.png" alt="" width="438" height="438" loading="lazy"><span>Step 2</span><p>We buy them again, re-band them and smoke them blind.</p></li>
-        <li><img src="assets/step3.png" alt="" width="438" height="438" loading="lazy"><span>Step 3</span><p>The top scorers are smoked against each other over multiple rounds.</p></li>
-        <li><img src="assets/step4.png" alt="" width="438" height="438" loading="lazy"><span>Step 4</span><p>A new list of 25 cigars is assembled.</p></li>
+        <li><span>1</span><p>We review the year's highest-scoring cigars and assemble a new tasting of only those.</p></li>
+        <li><span>2</span><p>We buy them again, re-band them and smoke them blind.</p></li>
+        <li><span>3</span><p>The top scorers are smoked against each other over multiple rounds.</p></li>
+        <li><span>4</span><p>A new list of 25 cigars is assembled.</p></li>
       </ol>
     </div>
   </section>
@@ -254,8 +236,7 @@
 
 <!-- CIGAR OF THE YEAR REVEAL -->
 <div class="takeover" id="takeover" hidden role="dialog" aria-modal="true" aria-label="Cigar of the Year reveal">
-  <div class="take-light" aria-hidden="true"></div>
-  <div class="take-stage" id="takeStage" aria-hidden="true"></div>
+  <div class="take-white" aria-hidden="true"></div>
   <div class="takeover-in" id="takeoverIn"></div>
   <div class="take-ctl">
     <button class="chip" id="takeSkip" type="button">Skip</button>

@@ -1,70 +1,68 @@
-# The Collector's Humidor — upgrade notes
+# Top 25 of 2026 — design and build notes
 
-What was built against the upgrade brief, how it was checked, and what is still missing.
-Screenshots and the recording are in `docs/media/`.
+The current state of the prototype, how it was checked, and what is still missing.
+Screenshots and a recording are in `docs/media/`.
 
-## What changed
+## Direction
 
-| Brief item | What it is now |
+A bright, typographic page. One sans family (Geist) at large sizes, hairlines instead of
+boxes, and no colour in the interface beyond a single red marker. All colour comes from
+the cigar photographs. Dark is used for three moments only: the sealed No. 1, the films,
+and the first second of the reveal.
+
+Every cigar on the page is a real photograph. There are no drawn, modelled or
+illustrated cigars; a sealed place is a number and a date.
+
+An earlier version used a dark "humidor" look with glass panels, wood and brass, a
+3D cigar in a glass tube, a smoke shader and a generated lounge film. All of that was
+removed after review as dated and cramped.
+
+## What is on the page
+
+| Part | What it does |
 | --- | --- |
-| 1. Hero transformation | A tall track with a sticky stage. Scrolling pushes the camera in, slides the cap and glass off a sealed cigar, and hands over to "Twenty-five places", the 25-number ladder. The headline and "Open the humidor" are readable at scroll position zero. The page scrolls natively; nothing captures the wheel or touch. |
-| 2. No. 1 reveal | One 5.4-second timeline: dark frosted tube, light comes up, cap and glass slide off, a little smoke, the cigar settles, then rank, name and a counting score. Skip jumps to the end, Replay runs it again, Escape closes. Focus stays inside it and the rest of the page is inert. |
-| 3. Humidor view | A List / Humidor switch. The cabinet has one cedar place per rank. Released places show photo, name and score and open the same detail panel. Sealed places show only their number and opening day. |
-| 4. Continuous detail | Opening a cigar from a row, a cabinet place or the feature carries its photo, rank and title into the panel, and back on close (View Transitions API). "Turn it in 3D" rotates a model of the cigar, by drag or by a labelled slider. |
-| 5. Charts | "Rank the list your way": order by score, price, length or ring gauge, either direction; bars slide to their new place. Choosing a country highlights it in every chart. Hovering or focusing a cigar in one chart marks it in the others. Every mark opens the detail panel. Dollar and pound prices are separate groups with separate scales. |
+| Hero | A sticky stage in a tall track. Scrolling carries the ten best cigars revealed so far across the page as full-size photographs, then hands over to "Twenty-five places" and the 25-number index. Before the first reveal the procession carries the numbers that open next. The page scrolls natively. |
+| No. 1 reveal | One 5.2-second sequence: a black room and the numeral 1, the lights come on, the cigar turns from foot-on to its profile, then name and a counting score. Skip, Replay and Escape work; focus stays inside. Reduced motion opens on the final frame. |
+| Cigar of the Year | Sealed: a full-width live countdown and a prediction. Open: scrolling through the feature turns the cigar (image sequence scrubbed by scroll). |
+| List and grid | The list is the default. The grid has one place per rank; a sealed place shows only its number and day. |
+| Detail panel | Photo, rank and title travel from the list into the panel and back (View Transitions API). No. 1 can be turned by slider, keys or drag; other cigars offer a 3D turn built from their photo. |
+| Charts | Rank by score, price, length or ring gauge; highlight a country across every chart; hover or focus links the charts; every mark opens the detail panel. Dollars and pounds are separate groups. "Sized up" shows the photographs at one common scale. |
 
-## Technical decisions
+## Technical notes
 
-- **Architecture kept.** Plain HTML, CSS and JavaScript, no build step. `stage3d.js` is the only ES module.
-- **three.js r128 → r160.** r128 was loaded as a global from a CDN before the page's own script. r160 is vendored (`vendor/three.module.min.js`) and imported by `stage3d.js`, which `app.js` loads 200 ms after the `load` event. That removes the CDN dependency and gets text, poster and navigation on screen before any 3D code is requested.
-- **Timeline.** GSAP ScrollTrigger was considered and not added. The hero needs one number (progress through the track) and the reveal needs one clock; both are a few lines, and both are seekable, which is what Skip, Replay and the frame-stepped recording rely on.
-- **One renderer.** A single WebGL context and canvas is moved between four hosts: hero, sealed No. 1, the reveal and the detail viewer. It renders only while its host is on screen and the tab is visible, and under reduced motion only when something changes.
-- **Weaker devices.** Pixel ratio is capped at 2 (1.5 on narrow or low-memory devices, with antialiasing off). A frame-rate guard samples 24 frames after load; if the median is slower than 34 ms it switches to "lite": no live blur, no ambient smoke shader, hero film paused, 3D at pixel ratio 1.
-- **Fallbacks.** No WebGL, a failed module load, or `?no3d`: the hero shows a rendered poster, the sealed No. 1 shows its gold seal, the reveal uses the photograph, and "Turn it in 3D" is not offered. Reduced motion: the hero is an ordinary section and the reveal opens on its final frame.
-- **Decoration never takes input.** The 3D canvas, film and smoke have `pointer-events: none`; only the sealed tube and the detail viewer accept a drag, and both keep vertical touch scrolling.
+- Plain HTML, CSS and JavaScript, no build step. First load is about 180 KB of local files plus two web fonts.
+- **3D is on demand.** `stage3d.js` and three.js r160 (vendored, 690 KB) are fetched only when someone presses "Turn it in 3D". Nothing else on the page uses WebGL.
+- **Timelines.** The hero, the No. 1 feature and the reveal each run from one number (scroll progress or a clock), so all three are seekable. No animation library is used.
+- **Fallbacks.** Without WebGL the 3D button is not offered; everything else is unchanged. With reduced motion the hero and the feature are ordinary sections and the reveal opens complete.
+- **Glass** is used in two places only, both floating over content: the header and the presenter bar.
 
-## Asset audit and the modelling approach
+## Assets
 
-Per cigar the repository has one side photograph (1400 × 350) and one band close-up (520 × 520). That is not enough for a photoreal model, so:
+Per cigar the repository has one side photograph and one band close-up.
 
-- **Released cigars** are built from the side photo. `tools/profiles.py` traces the silhouette, the browser turns it into a body of revolution and projects the same photo back onto it. Shape and front face are true to the photo; the far side is its mirror image, so rotation is limited to ±60°.
-- **Sealed cigars** are procedural (leaf texture, numbered band) so nothing about an unreleased cigar is drawn.
-- The winner gets no better treatment than the others yet, because its assets are no better. Three cigars with white paper sleeves (Nos. 6, 21, 24) have approximate silhouettes where white paper meets the white background.
-
-### The winner's turn (Runway)
-
-Runway has no image-to-3D endpoint, so a 360° was attempted as an image-to-video turntable (Veo 3.1, the photo as both first and last frame). It did not produce a true 360°: the clip turns the cigar about 100° until the foot faces the camera, then morphs the foot into the head and turns back. A generated back view to anchor two half-turns came out as a different, straight-sided cigar, so that route was stopped.
-
-What ships is the part of the clip that holds together: 63 evenly spaced frames from 65° head-on to 90° foot-on (`assets/spin1/`), shown in the winner's detail panel with a slider and drag. It works without WebGL. The panel says it is AI-rendered, that the ends are generated, and that the far side is not shown. A real 360° still needs item 1 below.
+- **The winner's turn** (`assets/spin1/`, 63 frames) was rendered with Runway from the one photograph. It covers 65° head-on to 90° foot-on. It is not a photographed 360°: the ends are generated and the far side is not shown, and the panel says so. Runway has no image-to-3D endpoint, and its attempt at a full turntable morphed at the half-way point.
+- **Other cigars' 3D turn** is the side photo wrapped onto its own silhouette (`tools/profiles.py`). The far side is a mirror image, so it is limited to ±60°. Three cigars in white paper sleeves (Nos. 6, 21, 24) have approximate outlines.
 
 ### Missing assets
 
-1. Winner: a turntable photo set (24–36 angles) or a photogrammetry scan, for a true 360° model.
-2. Winner: flat band artwork, so the band can be a real texture instead of a projected photo.
-3. All cigars: photos on transparent or neutral grey backgrounds. White backgrounds are why white sleeves are hard to trace.
-4. A studio HDRI for reflections. The current one is generated in code.
-5. Approved 2026 content: the list, scores, reviews, photos, films and confirmed reveal dates.
-6. A sponsor mark, and a final decision on the two Runway clips. Only the hero clip is still used.
-7. A compressed-texture pipeline (KTX2/Basis) once real textures exist. Today's textures are small WebP files and canvases, which did not justify adding the transcoder.
+1. Winner: a turntable photo set (24–36 angles) of the real cigar. The scroll turn, the reveal and the panel all take the frames as they are.
+2. All cigars: photographs on a neutral grey or transparent background, for cleaner outlines.
+3. Approved 2026 content: the list, scores, reviews, photographs, films and confirmed reveal dates.
+4. A sponsor mark.
 
 ## Verification
 
-Run in headless Chromium at 1440 × 900 and 390 × 844, with 3D, with `?no3d`, and with reduced motion.
+Run in headless Chromium at 1280 × 800 and 390 × 844, with WebGL, without it, and with reduced motion.
 
-- Simulator: all six stages give 0, 3, 6, 9, 10 and 25 revealed in the list, the cabinet and the charts, in all three modes, with no console errors.
-- Browsing, saving, sharing and opening details work in all three modes.
-- Keyboard: Enter on a cigar moves focus into the panel and Tab stays there; Escape closes it. In the reveal, focus starts on Skip, Enter skips, Tab stays inside, Escape closes.
-- No horizontal overflow at either width.
-- Load order: about 600 KB before the `load` event excluding the hero film; 690 KB of 3D code is requested only after it.
+- Simulator: all six stages give 0, 3, 6, 9, 10 and 25 revealed in the list, the grid and the charts, in every mode, with no console errors and no horizontal overflow.
+- Saving, sharing, opening details, the winner's turn and the 3D turn work in every mode where they are offered.
+- Keyboard: focus moves into the panel and stays there; in the reveal it starts on Skip, stays inside, and returns to "Read the full review" on close.
+- 3D code is not requested until asked for.
 
-### Performance: not yet measured on real devices
-
-No physical phone or desktop GPU was available. Headless Chromium here renders WebGL in software, so its frame rates (5–16 fps in the hero, 9–38 in the reveal) say nothing about a real GPU. They did confirm that the lite-mode guard triggers and applies.
-
-Still to do before sign-off: profile on one midrange Android phone, one recent iPhone and one integrated-graphics laptop; record frame times for the hero scroll and the reveal; confirm whether lite mode triggers on each.
+**Not yet tested:** any physical phone or desktop. Frame rates have not been measured on real hardware. The page no longer runs any continuous WebGL, so the earlier performance risk is much smaller, but it still needs a pass on a midrange Android phone, an iPhone and an integrated-graphics laptop.
 
 ## Before production
 
-The prototype ships every cigar to the browser so reveal week can be simulated. Hiding a sealed cigar on screen does not protect it. Production needs the Top 20's server-side release gate: unreleased records and photos stay on the server, and the 3D profiles must be gated with them, since a silhouette is embargoed information too.
+The prototype ships every cigar to the browser so reveal week can be simulated. Hiding a sealed cigar on screen does not protect it. Production needs the Top 20's server-side release gate, covering records, photographs, turn frames and outlines.
 
-2025 content and the December 14–18 dates remain placeholders and are labelled as such in the footer and the detail panel.
+2025 content and the December 14–18 dates are placeholders and are labelled in the footer and the detail panel.

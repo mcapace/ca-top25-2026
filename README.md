@@ -13,12 +13,12 @@ file with the images inlined, for emailing or opening offline.
 
 ## What it uses
 
-- **Glass:** frosted surfaces over one fixed WebGL smoke field.
-- **3D:** `stage3d.js`, one three.js r160 renderer (vendored in `vendor/`) shared by the hero, the sealed No. 1, the reveal and the detail viewer. Loaded after first paint; static posters if it cannot run.
-- **Models:** released cigars are built from their side photo (`tools/profiles.py` writes the silhouettes into `data.js`); sealed cigars are procedural.
-- **Film:** `assets/hero.mp4` was generated with Runway Gen-4.5.
+- **Look:** bright and typographic, one sans family, real photographs only. No drawn or modelled cigars.
+- **Scroll sequences:** the hero procession and the winner's turn are driven by scroll position; the page scrolls natively.
+- **The winner's turn:** `assets/spin1/` is a 63-frame sequence rendered with Runway from the one photograph.
+- **3D:** `stage3d.js` and three.js r160 (in `vendor/`) load only when someone presses "Turn it in 3D".
 
-`docs/UPGRADE-NOTES.md` covers the decisions, the checks that were run, performance status and missing assets. `tools/capture.js` regenerates `docs/media/`.
+`docs/UPGRADE-NOTES.md` covers the direction, the checks that were run and the missing assets. `tools/capture.js` regenerates `docs/media/`.
 
 ## Presenting it
 
@@ -32,6 +32,7 @@ Full list, or "Play the week". `?stage=0`–`5` opens at a given stage; `?no3d` 
   photos, video links), standing in for 2026.
 - **Dates** (December 14–18, 10:00 AM ET) are a proposed schedule.
 - **Reveal alerts**, the **sponsor slot** and the **ad position** are mock-ups.
+- **The winner's turn** is AI-rendered from one photo, not a photographed 360°.
 - **The embargo is not real here.** Every cigar ships to the browser so the
   week can be simulated. A production build needs the Top 20's server-side
   release gate (in `mcapace/wa-top20`: `src/lib/release-policy.ts`, `toPublic()`, gated image routes).

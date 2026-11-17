@@ -3,6 +3,28 @@
 The current state of the prototype, how it was checked, and what is still missing.
 Screenshots and a recording are in `docs/media/`.
 
+## Editorial study (in review)
+
+`study.html` is a separate page that establishes the next visual system before it is applied
+to the whole site: a hero, one ranking row and one detail view. The live page is unchanged.
+
+- **Identity.** Warm white, deep ink, tobacco brown (#4a1b00) and rust (#963700). The last two
+  are taken from cigaraficionado.com's own stylesheet. The masthead is the CA logo. Headlines
+  and reading text are Newsreader; navigation and specifications are Inter.
+- **No labels above headings.** Rank, score and release times sit beneath a title or beside
+  the action they belong to.
+- **One transformation.** The hero cigar is a single element that travels, as the page scrolls,
+  to its place in the Cigar of the Year section and stays there. Nothing is pinned.
+- **Light.** A small WebGL shader draws the photograph with a light that follows the pointer
+  (or the scroll on touch). The cutout gives the edge, the silhouette gives a round surface,
+  and the photographed shadow is kept. Without WebGL the plain photograph is shown.
+- **Inspection.** The detail view opens on a table with the cigar drawn to scale against an
+  inch ruler, zoom to 300%, drag and keyboard movement, and a second view of the band.
+- **Photography limits.** The source photographs are 800 × 200 pixels. The two used in the
+  study were enlarged 2× with Runway's precision upscaler, which kept the band artwork and
+  wrapper intact on inspection; this is a stand-in. The AI-rendered turn is not used in the
+  study, because it is not an authentic turntable.
+
 ## Direction
 
 Dark and bold. A near-black page, one heavy expanded typeface (Archivo) and one loud flat

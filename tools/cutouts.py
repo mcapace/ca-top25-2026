@@ -11,9 +11,10 @@ from PIL import Image, ImageDraw, ImageFilter
 
 root = pathlib.Path(__file__).resolve().parent.parent
 
-def cut(rank):
-    im = Image.open(root / "assets" / f"c{rank}.webp").convert("RGB")
+def cut(src, dst):
+    im = Image.open(src).convert("RGB")
     W, H = im.size
+    S = W / 1400                           # window sizes below were tuned at 1400 px wide
     px = im.load()
     strict = lambda p: (max(p) - min(p) > 45 and max(p) < 250) or max(p) < 110
     st, sb, lt = [None] * W, [None] * W, [None] * W
@@ -30,17 +31,17 @@ def cut(rank):
     x1 = max(x for x in range(W) if st[x] is not None) + 1     # the head is never paper: stop at the last leaf-coloured column
     centre_all = statistics.median((st[x] + sb[x]) / 2 for x in range(W) if st[x] is not None)
     def local_centre(x):                    # cigars are rarely dead level, so follow the centre line along the length
-        v = sorted((st[i] + sb[i]) / 2 for i in range(max(0, x - 60), min(W, x + 61)) if st[i] is not None and sb[i] - st[i] > H * 0.25)
+        v = sorted((st[i] + sb[i]) / 2 for i in range(max(0, x - round(60 * S)), min(W, x + round(60 * S) + 1)) if st[i] is not None and sb[i] - st[i] > H * 0.25)
         return v[len(v) // 2] if v else centre_all
     top, bot = [None] * W, [None] * W
     for x in range(x0, x1 + 1):
         centre = local_centre(x)
-        if st[x] is not None and (solid[x] is None or st[x] - solid[x] < 5):
+        if st[x] is not None and (solid[x] is None or st[x] - solid[x] < 5 * S):
             mirrored = 2 * centre - st[x]
-            top[x], bot[x] = st[x], (sb[x] if mirrored - sb[x] < 8 else mirrored)
+            top[x], bot[x] = st[x], (sb[x] if mirrored - sb[x] < 8 * S else mirrored)
         else:
             # paper on white: take the outermost edge seen nearby, then mirror it
-            near = [solid[i] for i in range(max(x0, x - 14), min(x1, x + 14) + 1) if solid[i] is not None]
+            near = [solid[i] for i in range(max(x0, x - round(14 * S)), min(x1, x + round(14 * S)) + 1) if solid[i] is not None]
             if near: top[x], bot[x] = min(near), 2 * centre - min(near)
     # A pure-white band against the white background leaves columns with no edge at all: bridge them.
     known = [x for x in range(x0, x1 + 1) if top[x] is not None]
@@ -48,7 +49,7 @@ def cut(rank):
         a, b = known[i], known[i + 1]
         for x in range(a + 1, b):
             k = (x - a) / (b - a); top[x] = top[a] + (top[b] - top[a]) * k; bot[x] = bot[a] + (bot[b] - bot[a]) * k
-    def med(a, x, k=5):
+    def med(a, x, k=round(5 * S)):
         v = [a[i] for i in range(max(x0, x - k), min(x1, x + k) + 1) if a[i] is not None]
         return statistics.median(v) if v else None
     mask = Image.new("L", (W, H), 0)
@@ -62,8 +63,13 @@ def cut(rank):
     mask = mask.point(lambda v: 255 if v == 128 else 0)
     mask = mask.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.9))
     out = im.convert("RGBA"); out.putalpha(mask)
-    out.save(root / "assets" / f"k{rank}.webp", quality=84, method=6)
-    return (root / "assets" / f"k{rank}.webp").stat().st_size
+    out.save(dst, quality=86, method=6)
+    return pathlib.Path(dst).stat().st_size
 
-total = sum(cut(r) for r in range(1, 26))
-print("25 cutouts,", total // 1024, "KB")
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) == 3:                 # one file: python3 tools/cutouts.py photo.webp cutout.webp
+        print(cut(sys.argv[1], sys.argv[2]) // 1024, "KB")
+    else:
+        total = sum(cut(root / "assets" / f"c{r}.webp", root / "assets" / f"k{r}.webp") for r in range(1, 26))
+        print("25 cutouts,", total // 1024, "KB")

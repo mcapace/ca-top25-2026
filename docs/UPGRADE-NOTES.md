@@ -5,23 +5,30 @@ Screenshots and a recording are in `docs/media/`.
 
 ## Direction
 
-A bright, typographic page. One sans family (Geist) at large sizes, hairlines instead of
-boxes, and no colour in the interface beyond a single red marker. All colour comes from
-the cigar photographs. Dark is used for three moments only: the sealed No. 1, the films,
-and the first second of the reveal.
+Dark and bold. A near-black page, one heavy expanded typeface (Archivo) and one loud flat
+yellow. The biggest lines are sized by script to fill the screen width exactly, so a
+headline cannot clip at any size, and nothing is truncated with an ellipsis.
 
-Every cigar on the page is a real photograph. There are no drawn, modelled or
-illustrated cigars; a sealed place is a number and a date.
+Every cigar is a real photograph, cut out of its white studio background
+(`tools/cutouts.py` writes `assets/k<rank>.webp`) so it sits directly on black. There are
+no drawn, modelled or illustrated cigars; a sealed place is a number and a date.
 
-An earlier version used a dark "humidor" look with glass panels, wood and brass, a
-3D cigar in a glass tube, a smoke shader and a generated lounge film. All of that was
-removed after review as dated and cramped.
+**The light.** Each photograph carries a soft highlight masked to the cigar's own outline.
+It follows the pointer on a desktop and sweeps along the cigar as it travels up the screen
+on a phone. It is one CSS gradient per photo, driven by two custom properties.
+
+Two blocks break the dark on purpose: the sealed No. 1 is a wall of yellow with a live
+countdown, and the revealed No. 1 sits on a pale stage, because its turn sequence was
+rendered on white.
+
+Earlier versions were reviewed and replaced: a "humidor" look with glass, wood, brass and a
+3D cigar in a tube (dated, cramped), then a white typographic version (too stark, text cut off).
 
 ## What is on the page
 
 | Part | What it does |
 | --- | --- |
-| Hero | A sticky stage in a tall track. Scrolling carries the ten best cigars revealed so far across the page as full-size photographs, then hands over to "Twenty-five places" and the 25-number index. Before the first reveal the procession carries the numbers that open next. The page scrolls natively. |
+| Hero | A sticky stage in a tall track. The headline condenses as it leaves, and scrolling carries the ten best cigars revealed so far across the page as full-size photographs, then hands over to "Twenty-five places" and the 25-number index. Before the first reveal the procession carries the numbers that open next. The page scrolls natively. |
 | No. 1 reveal | One 5.2-second sequence: a black room and the numeral 1, the lights come on, the cigar turns from foot-on to its profile, then name and a counting score. Skip, Replay and Escape work; focus stays inside. Reduced motion opens on the final frame. |
 | Cigar of the Year | Sealed: a full-width live countdown and a prediction. Open: scrolling through the feature turns the cigar (image sequence scrubbed by scroll). |
 | List and grid | The list is the default. The grid has one place per rank; a sealed place shows only its number and day. |
@@ -30,7 +37,7 @@ removed after review as dated and cramped.
 
 ## Technical notes
 
-- Plain HTML, CSS and JavaScript, no build step. First load is about 180 KB of local files plus two web fonts.
+- Plain HTML, CSS and JavaScript, no build step. First load is about 140 KB of local files plus one variable web font; photographs load as they are needed.
 - **3D is on demand.** `stage3d.js` and three.js r160 (vendored, 690 KB) are fetched only when someone presses "Turn it in 3D". Nothing else on the page uses WebGL.
 - **Timelines.** The hero, the No. 1 feature and the reveal each run from one number (scroll progress or a clock), so all three are seekable. No animation library is used.
 - **Fallbacks.** Without WebGL the 3D button is not offered; everything else is unchanged. With reduced motion the hero and the feature are ordinary sections and the reveal opens complete.
@@ -46,7 +53,7 @@ Per cigar the repository has one side photograph and one band close-up.
 ### Missing assets
 
 1. Winner: a turntable photo set (24–36 angles) of the real cigar. The scroll turn, the reveal and the panel all take the frames as they are.
-2. All cigars: photographs on a neutral grey or transparent background, for cleaner outlines.
+2. All cigars: photographs supplied with transparent backgrounds. The cutouts are traced automatically; cigars in white paper sleeves (Nos. 6, 21, 24) and a few head tips are approximate.
 3. Approved 2026 content: the list, scores, reviews, photographs, films and confirmed reveal dates.
 4. A sponsor mark.
 

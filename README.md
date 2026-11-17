@@ -13,7 +13,7 @@ file with the images inlined, for emailing or opening offline.
 
 ## What it uses
 
-- **Look:** bright and typographic, one sans family, real photographs only. No drawn or modelled cigars.
+- **Look:** dark and bold, one heavy typeface, one yellow. Real photographs only, cut out of their backgrounds (`tools/cutouts.py`), each with a light that follows the pointer or the scroll.
 - **Scroll sequences:** the hero procession and the winner's turn are driven by scroll position; the page scrolls natively.
 - **The winner's turn:** `assets/spin1/` is a 63-frame sequence rendered with Runway from the one photograph.
 - **3D:** `stage3d.js` and three.js r160 (in `vendor/`) load only when someone presses "Turn it in 3D".

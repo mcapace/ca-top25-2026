@@ -68,7 +68,7 @@
   function renderHero() {
     const next = RELEASES[state.stage];
     const rev = revealed();
-    $("revCount").textContent = rev.length;
+    $("revCount").textContent = rev.length; fitAll();
     $("heroEyebrow").textContent = state.stage === 0 ? "Reveal week begins December 14" : state.stage === 5 ? "The complete list" : `Reveal week · Day ${state.stage} of 5`;
     const clock = document.querySelector(".clock");
     clock.classList.toggle("done", !next);
@@ -89,7 +89,7 @@
     // Before the first reveal there is nothing to show, so it carries the numbers that open next.
     const shown = [...rev].sort((a, b) => b.rank - a.rank).slice(-10);
     $("heroRail").innerHTML = shown.length
-      ? shown.map((c) => `<figure><img src="assets/c${c.rank}.webp" alt="" width="1400" height="350" ${c === shown[0] ? 'fetchpriority="high"' : 'loading="lazy"'}><figcaption><b>${c.rank}</b>${esc(c.name)}</figcaption></figure>`).join("")
+      ? shown.map((c) => `<figure class="lit" style="--m:url(assets/k${c.rank}.webp)"><img src="assets/k${c.rank}.webp" alt="" width="1400" height="350" ${c === shown[0] ? 'fetchpriority="high"' : 'loading="lazy"'}></figure>`).join("")
       : RELEASES[0].ranks.map((k) => `<figure class="num"><span>${k}</span><figcaption>Opens ${RELEASES[0].day}</figcaption></figure>`).join("");
     $("hero").classList.toggle("is-empty", !shown.length);
   }
@@ -117,7 +117,7 @@
       el.innerHTML = `<div class="coty-sealed">
         <p class="kicker">No. 1 · Sealed</p>
         <h2 id="cotyH">Cigar of the Year</h2>
-        ${state.stage <= 3 ? `<p class="coty-count" role="timer" aria-live="off" data-cd-big="3"></p>` : ""}
+        ${state.stage <= 3 ? `<p class="coty-count" role="timer" aria-live="off" data-cd-big="3" data-fit="0.5"></p>` : ""}
         <p class="when">Opens ${r.day} at ${TIME}</p>
         <div class="poll">
           <p>Call it. Which country makes this year's No. 1?</p>
@@ -160,7 +160,7 @@
     const saved = state.saved.has(c.rank);
     return `<article class="row${c.rank === 1 ? " is-coty" : ""}${state.fresh.has(c.rank) ? " fresh" : ""}" id="no-${c.rank}-row" style="--tint:${c.tint};--i:${i}">
       <div class="row-rank"><small>No.</small>${c.rank}</div>
-      <div class="row-photo"><img src="assets/c${c.rank}.webp" alt="" width="1400" height="350" loading="lazy"></div>
+      <div class="row-photo lit" style="--m:url(assets/k${c.rank}.webp)"><img src="assets/k${c.rank}.webp" alt="" width="1400" height="350" loading="lazy"></div>
       <div class="row-body">
         <p class="row-origin">${esc(c.country)} · ${esc(c.strength)}</p>
         <h3><button type="button" data-open="${c.rank}">${esc(c.name)}</button></h3>
@@ -230,10 +230,10 @@
       html = `<div class="cabinet"><div class="cab-lid"><span class="cab-plate">All 25 places</span><span class="cab-count">${rev.length} open</span></div><ol class="cab-grid">${CIGARS.map((c) => isOpen(c.rank)
         ? `<li><button type="button" class="slot is-open${match(c) ? "" : " dim"}${state.fresh.has(c.rank) ? " fresh" : ""}${c.rank === 1 ? " is-coty" : ""}" data-open="${c.rank}" style="--tint:${c.tint}" aria-label="No. ${c.rank}, ${esc(c.name)}, ${c.score} points. Open the review.">
             <span class="plate">No. ${c.rank}</span><span class="slot-score">${c.score}</span>
-            <span class="slot-photo"><img src="assets/c${c.rank}.webp" alt="" width="1400" height="350" loading="lazy"></span>
+            <span class="slot-photo lit" style="--m:url(assets/k${c.rank}.webp)"><img src="assets/k${c.rank}.webp" alt="" width="1400" height="350" loading="lazy"></span>
             <span class="slot-name">${esc(c.name)}</span></button></li>`
         : `<li><button type="button" class="slot is-shut${RELEASE_OF.get(c.rank) === state.stage ? " is-next" : ""}" data-sealed="${c.rank}" aria-label="No. ${c.rank}, sealed. Opens ${RELEASES[RELEASE_OF.get(c.rank)].day}.">
-            <span class="plate">No. ${c.rank}</span>
+            <span class="plate">${c.rank}</span>
             <span class="slot-seal" aria-hidden="true"><i></i></span>
             <span class="slot-name">Sealed · ${day(c.rank)}</span></button></li>`).join("")}</ol></div>`;
     }
@@ -325,7 +325,7 @@
     $("chartSizes").innerHTML = rev.length ? [...rev].sort((a, b) => b.len - a.len || b.ring - a.ring || a.rank - b.rank).map((c) => {
       const x0 = c.prof[0][0], span = c.prof[c.prof.length - 1][0] - x0, w = (c.len / longest / span) * 100;
       return `<button type="button" class="size${off(c)}" data-open="${c.rank}" data-rank="${c.rank}" aria-label="No. ${c.rank}, ${esc(c.name)}, ${fmtSize(c)}">
-        <span class="size-photo"><img src="assets/c${c.rank}.webp" alt="" loading="lazy" style="width:${w.toFixed(2)}%;margin-left:${(-x0 * w).toFixed(2)}%"></span>
+        <span class="size-photo"><img src="assets/k${c.rank}.webp" alt="" loading="lazy" style="width:${w.toFixed(2)}%;margin-left:${(-x0 * w).toFixed(2)}%"></span>
         <span class="lab"><b>${c.rank}</b><span class="nm">${esc(c.name)}</span><span>${fmtSize(c)}</span></span></button>`;
     }).join("") : none;
   }
@@ -363,7 +363,7 @@
         <div><p class="d-rank">No. ${c.rank}${c.rank === 1 ? " · Cigar of the Year" : ""}</p><h2 id="dName">${esc(c.name)}</h2><p class="d-origin">${esc(c.maker)} · ${esc(c.country)}</p></div>
         <div class="d-score"><b>${c.score}</b><br><span>points</span></div>
       </div>
-      <div class="d-photo" id="dPhoto"><img src="assets/c${c.rank}.webp" alt="${esc(c.name)}" width="1400" height="350"></div>
+      <div class="d-photo lit" id="dPhoto" style="--m:url(assets/k${c.rank}.webp)"><img src="assets/k${c.rank}.webp" alt="${esc(c.name)}" width="1400" height="350"></div>
       <div class="d-turn" id="dTurn" hidden>
         <label for="turnRange">Rotate</label><input type="range" id="turnRange" min="-60" max="60" step="1" value="-20" aria-label="Rotate the cigar">
         <small>Built from the one photograph, so the far side is a mirror image.</small>
@@ -417,7 +417,7 @@
   function setSpin(sp, deg, off) {
     const img = $("dPhoto").querySelector("img"); if (!img) return;
     const i = Math.round(((Math.max(sp.min, Math.min(sp.max, deg)) - sp.min) / (sp.max - sp.min)) * (sp.frames - 1));
-    img.src = off ? `assets/c${state.open}.webp` : spinSrc(sp, i);
+    img.src = off ? `assets/k${state.open}.webp` : spinSrc(sp, i);
   }
   $("drawer").addEventListener("input", (e) => {
     if (e.target.id !== "turnRange") return;
@@ -441,7 +441,7 @@
     $("humidorIn").innerHTML = `
       <div class="d-bar"><span class="sp">Saved on this device</span><button class="icon-btn" type="button" data-close aria-label="Close">${ICON.x}</button></div>
       <div class="d-head"><div><p class="d-rank">${items.length} ${items.length === 1 ? "cigar" : "cigars"}</p><h2 id="hTitle">My humidor</h2></div></div>
-      ${items.length ? `<div class="h-list">${items.map((c) => `<div class="h-item"><span class="r">${c.rank}</span><div><button type="button" class="name" data-open="${c.rank}">${esc(c.name)}</button><small>${fmtSize(c)} · ${c.score} points · ${fmtPrice(c)}</small></div><button class="icon-btn" type="button" data-save="${c.rank}" aria-label="Remove ${esc(c.name)}">${ICON.x}</button><img src="assets/c${c.rank}.webp" alt="" width="1400" height="350" loading="lazy"></div>`).join("")}</div>
+      ${items.length ? `<div class="h-list">${items.map((c) => `<div class="h-item"><span class="r">${c.rank}</span><div><button type="button" class="name" data-open="${c.rank}">${esc(c.name)}</button><small>${fmtSize(c)} · ${c.score} points · ${fmtPrice(c)}</small></div><button class="icon-btn" type="button" data-save="${c.rank}" aria-label="Remove ${esc(c.name)}">${ICON.x}</button><img src="assets/k${c.rank}.webp" alt="" width="1400" height="350" loading="lazy"></div>`).join("")}</div>
         <div class="h-total"><span>One of each, U.S. suggested retail${usd.length < items.length ? "<br><small style='font-weight:400;color:var(--paper-mute)'>U.K.-priced cigars not included</small>" : ""}</span><b>$${total.toFixed(2)}</b></div>
         <div class="d-acts"><button class="btn btn-ink btn-sm" type="button" id="copyList">Copy my list</button></div>`
         : `<p class="h-empty">Nothing saved yet. Tap Save on any revealed cigar to build a shopping list for your next trip to the shop.</p>`}`;
@@ -558,7 +558,7 @@
     const t = now(), next = RELEASES[state.stage];
     if (next) { const p = parts(Date.parse(next.at) - t); $("cdD").textContent = pad(p.d); $("cdH").textContent = pad(p.h); $("cdM").textContent = pad(p.m); $("cdS").textContent = pad(p.s); }
     document.querySelectorAll("[data-cd]").forEach((el) => { el.textContent = cdText(Date.parse(RELEASES[+el.dataset.cd].at) - t); });
-    document.querySelectorAll("[data-cd-big]").forEach((el) => { const p = parts(Date.parse(RELEASES[+el.dataset.cdBig].at) - t); el.innerHTML = `${p.d ? `<span>${p.d}<i>d</i></span>` : ""}<span>${pad(p.h)}<i>h</i></span><span>${pad(p.m)}<i>m</i></span><span>${pad(p.s)}<i>s</i></span>`; });
+    document.querySelectorAll("[data-cd-big]").forEach((el) => { const p = parts(Date.parse(RELEASES[+el.dataset.cdBig].at) - t); el.innerHTML = `${p.d ? `<span>${p.d}<i>d</i></span>` : ""}<span>${pad(p.h)}<i>h</i></span><span>${pad(p.m)}<i>m</i></span><span>${pad(p.s)}<i>s</i></span>`; if (!el.dataset.fitted) { el.dataset.fitted = "1"; fitAll(); } });
   }
   setInterval(tick, 1000);
 
@@ -681,15 +681,53 @@
     document.documentElement.classList.toggle("hero-fx", fx);
     const r = track.getBoundingClientRect(), travel = r.height - pin.offsetHeight;
     heroP = fx && travel > 0 ? clamp01((headerH() - r.top) / travel) : 0;
-    if (!fx) { for (const e of [copy, col, rail]) { e.style.opacity = ""; e.style.transform = ""; e.inert = false; } return; }
+    if (!fx) { for (const e of [copy, col, rail]) { e.style.opacity = ""; e.style.transform = ""; e.inert = false; } rail.style.top = ""; return; }
     const out = ease(0.3, 0.52, heroP), inn = ease(0.74, 0.92, heroP);
     copy.style.opacity = 1 - out; copy.style.transform = `translate3d(0,${-out * 48}px,0)`; copy.inert = out > 0.6;
     col.style.opacity = inn; col.style.transform = `translate3d(0,${(1 - inn) * 40}px,0)`; col.inert = inn < 0.4;
+    const title = $("heroTitle"); rail.style.top = `${title.offsetTop + title.offsetHeight + innerHeight * 0.025}px`;     // always clear of the headline
     const start = innerWidth * 0.5, end = -Math.max(0, rail.scrollWidth - innerWidth * 0.55);
     rail.style.transform = `translate3d(${start + (end - start) * clamp01(heroP / 0.86)}px,0,0)`;
     rail.style.opacity = 1 - ease(0.78, 0.92, heroP);
     $("scrollCue").style.opacity = 1 - ease(0.02, 0.1, heroP);
+    $("heroTitle").style.setProperty("--wd", 125 - 63 * ease(0.04, 0.5, heroP));       // the headline condenses as it leaves
   }
+
+  // Lines marked data-fit are sized so they exactly fill their container's width, capped by a share of the
+  // viewport height (the attribute). They can wrap to nothing and clip nothing at any screen size.
+  function fitAll() {
+    document.querySelectorAll("[data-fit]").forEach((el) => {
+      const box = el.parentElement.closest(".wrap, .coty-sealed") || el.parentElement, cs = getComputedStyle(box);
+      const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      if (avail <= 0) return;
+      el.style.fontSize = "100px";
+      const w = el.getBoundingClientRect().width || 1;
+      el.style.fontSize = `${Math.min((100 * avail) / w, innerHeight * (+el.dataset.fit || 0.3)).toFixed(1)}px`;
+    });
+  }
+  addEventListener("resize", fitAll);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
+
+  // The light. Every photograph carries a soft highlight masked to the cigar's own outline. It follows the
+  // pointer where there is one, and otherwise sweeps along the cigar as it travels up the screen.
+  const lits = new Set(), hoverable = matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const litIO = new IntersectionObserver((es) => { for (const e of es) { if (e.isIntersecting) lits.add(e.target); else lits.delete(e.target); } queueLight(); }, { rootMargin: "60px" });
+  function watchLits() { document.querySelectorAll(".lit:not([data-l])").forEach((n) => { n.dataset.l = "1"; litIO.observe(n); }); }
+  let lightX = null, lightY = null, lightQ = false;
+  function queueLight() { if (lightQ || reduced) return; lightQ = true; requestAnimationFrame(() => {
+    lightQ = false;
+    lits.forEach((n) => {
+      if (!n.isConnected) { lits.delete(n); return; }
+      const r = n.getBoundingClientRect(); if (!r.width) return;
+      let x, y;
+      if (hoverable && lightX !== null) { x = (lightX - r.left) / r.width; y = (lightY - r.top) / r.height; }
+      else { x = 1.15 - ((r.top + r.height / 2) / innerHeight) * 1.3; y = 0.25; }
+      n.style.setProperty("--lx", `${(x * 100).toFixed(1)}%`); n.style.setProperty("--ly", `${(Math.max(-0.4, Math.min(1.4, y)) * 100).toFixed(1)}%`);
+    });
+  }); }
+  addEventListener("pointermove", (e) => { lightX = e.clientX; lightY = e.clientY; queueLight(); }, { passive: true });
+  addEventListener("scroll", queueLight, { passive: true });
+  new MutationObserver(() => { watchLits(); queueLight(); }).observe(document.body, { childList: true, subtree: true });
   const spinSrc = (sp, i) => `${sp.dir}/${String(i).padStart(2, "0")}.webp`;
   const spinImgs = [];
   function preloadSpin() { const sp = BY_RANK.get(1).spin; if (!sp || spinImgs.length || reduced) return; for (let i = 0; i < sp.frames; i++) { const im = new Image(); im.src = spinSrc(sp, i); spinImgs.push(im); } }

@@ -68,7 +68,7 @@
               <div><b id="cdM">00</b><span>min</span></div>
               <div><b id="cdS">00</b><span>sec</span></div>
             </div>
-            <p class="clock-sponsor">Presented by <span class="slot">Sponsor slot</span></p>
+            <p class="clock-sponsor">Presented by <span class="sponsor-slot">Sponsor slot</span></p>
           </aside>
         </div>
       </div>
@@ -114,6 +114,10 @@
           <input id="q" type="search" placeholder="Search brand, country, wrapper…" autocomplete="off">
         </label>
         <div class="chips" id="countryChips" role="group" aria-label="Filter by country"></div>
+        <div class="seg" role="group" aria-label="View">
+          <button type="button" data-view="list" aria-pressed="true">List</button>
+          <button type="button" data-view="humidor" aria-pressed="false">Humidor</button>
+        </div>
         <label class="sort">
           <span>Sort</span>
           <select id="sort">
@@ -152,8 +156,17 @@
       </div>
       <div class="stats" id="stats"></div>
       <div class="charts">
+        <figure class="chart chart-wide">
+          <figcaption><h3>Rank the list your way</h3><p>Order the revealed cigars by any measure, narrow them to a country, and choose one to open it. Prices in dollars and pounds are never compared.</p></figcaption>
+          <div class="explore-tools">
+            <div class="seg" id="metricSeg" role="group" aria-label="Measure"></div>
+            <button type="button" class="chip" id="dirBtn"></button>
+            <div class="chips" id="ccChips" role="group" aria-label="Highlight a country"></div>
+          </div>
+          <div id="chartRank" class="rankbars"></div>
+        </figure>
         <figure class="chart">
-          <figcaption><h3>Where they're made</h3><p>Revealed cigars by factory country</p></figcaption>
+          <figcaption><h3>Where they're made</h3><p>Revealed cigars by factory country. Choose a country to highlight it everywhere.</p></figcaption>
           <div id="chartCountry" class="bars"></div>
         </figure>
         <figure class="chart">

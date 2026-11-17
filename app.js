@@ -32,7 +32,8 @@
     stage: 3, simBase: 0, simSetAt: 0,
     saved: new Set(store.get("humidor", [])),
     pick: store.get("pick", null),
-    q: "", country: "All", sort: "rank",
+    q: "", country: "All", sort: "rank", view: store.get("view", "list"),
+    metric: "score", desc: true, cc: "All", hl: null,
     fresh: new Set(), open: null,
   };
 
@@ -208,6 +209,23 @@
       const hidden = 25 - rev.length;
       if (hidden && rows.length) html += `<p class="empty" style="padding:18px">${hidden} more ${hidden === 1 ? "cigar is" : "cigars are"} still sealed and will join these results as they open.</p>`;
     }
+    document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === state.view));
+    $("rows").classList.toggle("is-cabinet", state.view === "humidor");
+    document.querySelector(".sort").classList.toggle("off", state.view === "humidor");
+    if (state.view === "humidor") {
+      // One place per rank, always in rank order. A sealed place shows its number and opening day and nothing else.
+      const match = (c) => (state.country === "All" || c.country === state.country) && (!q || `${c.name} ${c.country} ${c.maker} ${c.wrapper} ${c.strength}`.toLowerCase().includes(q));
+      const day = (rank) => RELEASES[RELEASE_OF.get(rank)].day.replace(/^(\w{3})\w*, December/, "$1, Dec.");
+      html = `<div class="cabinet"><div class="cab-lid"><span class="cab-plate">The Collector's Humidor</span><span class="cab-count">${rev.length} of 25 open</span></div><ol class="cab-grid">${CIGARS.map((c) => isOpen(c.rank)
+        ? `<li><button type="button" class="slot is-open${match(c) ? "" : " dim"}${state.fresh.has(c.rank) ? " fresh" : ""}${c.rank === 1 ? " is-coty" : ""}" data-open="${c.rank}" style="--tint:${c.tint}" aria-label="No. ${c.rank}, ${esc(c.name)}, ${c.score} points. Open the review.">
+            <span class="plate">No. ${c.rank}</span><span class="slot-score">${c.score}</span>
+            <span class="slot-photo"><img src="assets/c${c.rank}.webp" alt="" width="1400" height="350" loading="lazy"></span>
+            <span class="slot-name">${esc(c.name)}</span></button></li>`
+        : `<li><button type="button" class="slot is-shut${RELEASE_OF.get(c.rank) === state.stage ? " is-next" : ""}" data-sealed="${c.rank}" aria-label="No. ${c.rank}, sealed. Opens ${RELEASES[RELEASE_OF.get(c.rank)].day}.">
+            <span class="plate">No. ${c.rank}</span>
+            <span class="slot-seal" aria-hidden="true"><i></i></span>
+            <span class="slot-name">Sealed · ${day(c.rank)}</span></button></li>`).join("")}</ol></div>`;
+    }
     $("rows").innerHTML = html;
   }
 
@@ -237,7 +255,35 @@
     ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
 
     const none = `<p class="empty" style="padding:24px">Opens with the first reveal on Monday, December 14.</p>`;
-    $("chartCountry").innerHTML = top.length ? top.map(([k, n]) => `<div class="bar"><span>${esc(k)}</span><div><i style="width:${(n / top[0][1]) * 100}%"></i></div><b>${n}</b></div>`).join("") : none;
+    if (state.cc !== "All" && !counts.has(state.cc)) state.cc = "All";
+    const off = (c) => (state.cc !== "All" && c.country !== state.cc ? " off" : "");
+
+    // ranked bars: one measure at a time; dollars and pounds are separate groups with separate scales
+    const METRICS = { score: ["Score", (c) => c.score, (c) => `${c.score} pts`], price: ["Price", (c) => c.price, (c) => fmtPrice(c)], len: ["Length", (c) => c.len, (c) => fmtLen(c.len)], ring: ["Ring gauge", (c) => c.ring, (c) => `${c.ring}`] };
+    const [, val, label] = METRICS[state.metric];
+    $("metricSeg").innerHTML = Object.entries(METRICS).map(([k, [n]]) => `<button type="button" data-metric="${k}" aria-pressed="${state.metric === k}">${n}</button>`).join("");
+    $("dirBtn").textContent = state.desc ? "High to low ↓" : "Low to high ↑";
+    $("ccChips").innerHTML = [["All", rev.length], ...top].map(([k, n]) => `<button type="button" class="chip" data-cc="${esc(k)}" aria-pressed="${state.cc === k}">${esc(k)}<b>${n}</b></button>`).join("");
+    const order = (a, b) => (state.desc ? val(b) - val(a) : val(a) - val(b)) || a.rank - b.rank;
+    const groups = state.metric === "price"
+      ? [["U.S. suggested retail, in dollars", rev.filter((c) => c.cur === "$" && c.price != null)], ["U.K. price, in pounds (not comparable with dollars)", rev.filter((c) => c.cur === "£" && c.price != null)], ["No price listed", rev.filter((c) => c.price == null)]]
+      : [["", rev]];
+    const lo = state.metric === "score" ? Math.min(...rev.map(val)) - 2 : 0;       // scores sit in a narrow band, so the axis starts just below the lowest
+    const prevTop = new Map([...$("chartRank").querySelectorAll("[data-rank]")].map((n) => [n.dataset.rank, n.getBoundingClientRect().top]));
+    $("chartRank").innerHTML = rev.length ? groups.filter(([, g]) => g.length).map(([title, g]) => {
+      const max = Math.max(...g.map((c) => val(c) ?? 0));
+      return (title ? `<p class="rb-group">${title}</p>` : "") + [...g].sort(order).map((c) => `<button type="button" class="rb${off(c)}" data-open="${c.rank}" data-rank="${c.rank}" style="--tint:${c.rank === 1 ? "#b4232c" : c.tint}">
+        <span class="rb-name"><b>${c.rank}</b>${esc(c.name)}</span>
+        <span class="rb-track">${val(c) == null ? "" : `<i style="width:${Math.max(3, ((val(c) - lo) / (max - lo)) * 100)}%"></i>`}</span>
+        <span class="rb-val">${label(c)}</span></button>`).join("");
+    }).join("") + (state.metric === "score" ? `<p class="rb-note">Bars start at ${lo} points so the differences are visible.</p>` : "") : none;
+    if (!reduced) $("chartRank").querySelectorAll("[data-rank]").forEach((n) => {       // slide each bar from where it was
+      const was = prevTop.get(n.dataset.rank); if (was == null) return;
+      const dy = was - n.getBoundingClientRect().top; if (!dy) return;
+      n.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 520, easing: "cubic-bezier(.2,.7,.2,1)" });
+    });
+
+    $("chartCountry").innerHTML = top.length ? top.map(([k, n]) => `<button type="button" class="bar" data-cc="${esc(k)}" aria-pressed="${state.cc === k}"><span>${esc(k)}</span><div><i style="width:${(n / top[0][1]) * 100}%"></i></div><b>${n}</b></button>`).join("") : none;
 
     // scatter: x = U.S. price, y = score; same-score points dodge vertically
     const pts = rev.filter((c) => c.cur === "$" && c.price != null);
@@ -260,19 +306,34 @@
       for (let s = sMin; s <= sMax; s++) g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(s)}" y2="${y(s)}"/><text x="${L - 8}" y="${y(s) + 4}" text-anchor="end">${s}</text>`;
       for (let v = 0; v <= xMax; v += small && xMax > 40 ? 20 : 10) g += `<text x="${x(v)}" y="${H - 10}" text-anchor="middle">$${v}</text>`;
       $("chartScatter").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Score against U.S. price for revealed cigars">${g}
-        ${dots.map((d) => `<circle tabindex="0" role="button" aria-label="No. ${d.c.rank}, ${esc(d.c.name)}, ${d.c.score} points, $${d.c.price.toFixed(2)}" data-open="${d.c.rank}" data-tip="${d.c.rank}" data-x="${(d.cx / W) * 100}" data-y="${(d.cy / H) * 100}" cx="${d.cx}" cy="${d.cy}" r="7" fill="${d.c.rank === 1 ? "#b4232c" : d.c.tint}"/>`).join("")}
+        ${dots.map((d) => `<circle tabindex="0" role="button" aria-label="No. ${d.c.rank}, ${esc(d.c.name)}, ${d.c.score} points, $${d.c.price.toFixed(2)}" class="${off(d.c).trim()}" data-open="${d.c.rank}" data-rank="${d.c.rank}" data-tip="${d.c.rank}" data-x="${(d.cx / W) * 100}" data-y="${(d.cy / H) * 100}" cx="${d.cx}" cy="${d.cy}" r="7" fill="${d.c.rank === 1 ? "#b4232c" : d.c.tint}"/>`).join("")}
       </svg><div class="tip" id="tip" hidden></div>`;
     }
 
     $("chartSizes").innerHTML = rev.length ? [...rev].sort((a, b) => b.len - a.len || b.ring - a.ring || a.rank - b.rank).map((c) =>
-      `<button type="button" class="size" data-open="${c.rank}" style="--len:${c.len};--ring:${c.ring};--tint:${c.tint}" aria-label="No. ${c.rank}, ${esc(c.name)}, ${fmtSize(c)}">
+      `<button type="button" class="size${off(c)}" data-open="${c.rank}" data-rank="${c.rank}" style="--len:${c.len};--ring:${c.ring};--tint:${c.tint}" aria-label="No. ${c.rank}, ${esc(c.name)}, ${fmtSize(c)}">
         <span class="shape"></span><span class="lab"><b>No. ${c.rank} · ${esc(c.name)}</b><span>${fmtSize(c)}</span></span></button>`).join("") : none;
   }
 
   /* ---------- drawers ---------- */
-  function openDrawer(rank) {
+  const canMorph = () => !reduced && typeof document.startViewTransition === "function";
+  const morphParts = (src) => [[src.querySelector(".row-photo, .slot-photo, .coty-photo"), "cig-img"], [src.querySelector(".row-rank, .plate"), "cig-rank"], [src.querySelector("h3, .slot-name, h2"), "cig-title"]].filter(([n]) => n);
+  const onScreen = (n) => { const r = n.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
+  function releaseViewer() { if (stage) { stage.setViewer(0); stage.setHost("viewer", null); } }
+  // Opening from a row, a cabinet place or the feature carries its photo, rank and title across into the panel.
+  function openDrawer(rank, from) {
     const c = BY_RANK.get(rank);
     if (!c || !isOpen(rank)) { if (c) toast(sealedMsg(rank)); return; }
+    releaseViewer();
+    const src = from && from.closest && from.closest(".row, .slot, .coty-open");
+    if (!src || $("drawer").open || !canMorph()) { fillDrawer(rank); return; }
+    const parts = morphParts(src);
+    parts.forEach(([n, name]) => { n.style.viewTransitionName = name; });
+    const vt = document.startViewTransition(() => { parts.forEach(([n]) => { n.style.viewTransitionName = ""; }); document.documentElement.classList.add("vt-detail"); fillDrawer(rank); });
+    vt.finished.finally(() => document.documentElement.classList.remove("vt-detail"));
+  }
+  function fillDrawer(rank) {
+    const c = BY_RANK.get(rank);
     state.open = rank;
     const order = revealed().map((x) => x.rank), at = order.indexOf(rank);
     const saved = state.saved.has(rank);
@@ -287,8 +348,13 @@
         <div><p class="d-rank">No. ${c.rank}${c.rank === 1 ? " · Cigar of the Year" : ""}</p><h2 id="dName">${esc(c.name)}</h2><p class="d-origin">${esc(c.maker)} · ${esc(c.country)}</p></div>
         <div class="d-score"><div><b>${c.score}</b><br><span>points</span></div></div>
       </div>
-      <div class="d-photo"><img src="assets/c${c.rank}.webp" alt="${esc(c.name)}" width="1400" height="350"></div>
+      <div class="d-photo" id="dPhoto"><img src="assets/c${c.rank}.webp" alt="${esc(c.name)}" width="1400" height="350"></div>
+      <div class="d-turn" id="dTurn" hidden>
+        <label for="turnRange">Rotate</label><input type="range" id="turnRange" min="-60" max="60" step="1" value="-20" aria-label="Rotate the cigar">
+        <small>Built from the one photograph, so the far side is a mirror image.</small>
+      </div>
       <div class="d-acts">
+        ${stage ? `<button class="pill" type="button" id="turnBtn" aria-pressed="false" aria-controls="dTurn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 12c0-2.2 3.6-4 8-4s8 1.8 8 4-3.6 4-8 4m0 0 2.5-2.5M12 16l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>Turn it in 3D</span></button>` : ""}
         <button class="pill" type="button" data-save="${c.rank}" aria-pressed="${saved}">${ICON.box} <span>${saved ? "In my humidor" : "Add to my humidor"}</span></button>
         ${c.video ? `<a class="pill" href="https://www.cigaraficionado.com/video/${c.video}" target="_blank" rel="noopener">${ICON.play} Watch the film</a>` : ""}
         <button class="pill" type="button" data-share="${c.rank}">${ICON.share} Share</button>
@@ -301,8 +367,30 @@
     $("drawerIn").scrollTop = 0;
     try { history.replaceState(null, "", `#no-${rank}`); } catch { /* sandboxed */ }
   }
-  function closeDrawer() { $("drawer").close(); }
-  $("drawer").addEventListener("close", () => { state.open = null; try { history.replaceState(null, "", location.pathname + location.search); } catch { /* sandboxed */ } });
+  function closeDrawer() {
+    const d = $("drawer"), rank = state.open;
+    if (!d.open) return;
+    releaseViewer();
+    const src = rank && ($(`no-${rank}-row`) || document.querySelector(`.slot[data-open="${rank}"]`));
+    if (!src || !canMorph() || !onScreen(src)) { d.close(); return; }
+    const root = document.documentElement, parts = morphParts(src);
+    root.classList.add("vt-detail");
+    const vt = document.startViewTransition(() => { root.classList.remove("vt-detail"); d.close(); parts.forEach(([n, name]) => { n.style.viewTransitionName = name; }); });
+    vt.finished.finally(() => parts.forEach(([n]) => { n.style.viewTransitionName = ""; }));
+  }
+  $("drawer").addEventListener("cancel", (e) => { e.preventDefault(); closeDrawer(); });       // Escape
+  $("drawer").addEventListener("click", (e) => {
+    const b = e.target.closest("#turnBtn"); if (!b || !stage) return;
+    const on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", on); b.querySelector("span").textContent = on ? "Back to the photo" : "Turn it in 3D"; $("dTurn").hidden = !on;
+    if (on) { stage.setHost("viewer", $("dPhoto")); stage.setViewer(state.open); stage.setViewYaw((+$("turnRange").value * Math.PI) / 180); } else releaseViewer();
+  });
+  $("drawer").addEventListener("input", (e) => { if (e.target.id === "turnRange" && stage) stage.setViewYaw((+e.target.value * Math.PI) / 180); });
+  { let dragX = null; const dr = $("drawer");
+    dr.addEventListener("pointerdown", (e) => { if (e.target.closest("#dPhoto.live")) dragX = e.clientX; });
+    dr.addEventListener("pointermove", (e) => { if (dragX === null || !stage) return; stage.nudge("viewer", e.clientX - dragX); dragX = e.clientX; const rg = $("turnRange"); if (rg) rg.value = Math.round((stage.viewYaw() * 180) / Math.PI); });
+    for (const ev of ["pointerup", "pointercancel"]) dr.addEventListener(ev, () => { dragX = null; }); }
+  $("drawer").addEventListener("close", () => { releaseViewer(); state.open = null; try { history.replaceState(null, "", location.pathname + location.search); } catch { /* sandboxed */ } });
 
   function renderHumidor() {
     const items = revealed().filter((c) => state.saved.has(c.rank));
@@ -397,6 +485,7 @@
     el.style.setProperty("--lit", ease(1.0, 1.7, t) - ease(3.2, 4.6, t) * 0.35);
     $("takeScore").textContent = Math.round(c.score - 9 + 9 * (1 - Math.pow(1 - clamp01((t - 4.3) / 0.8), 3)));
   }
+  window.__seekReveal = (t) => { if (take) take.stop(); takeFrame(t); };     // lets tools/ capture the sequence frame by frame
   function playTake(instant) {
     const el = $("takeover");
     if (take) take.stop();
@@ -466,7 +555,7 @@
       toast(`${RELEASES[state.stage - 1].title} just opened`);
       if (!reduced) { const f = document.createElement("div"); f.className = "flash"; document.body.appendChild(f); setTimeout(() => f.remove(), 1400); }
     }
-    if (state.open && !isOpen(state.open)) closeDrawer();
+    if (state.open && !isOpen(state.open)) { releaseViewer(); $("drawer").close(); }
   }
   function renderAll() { renderHero(); renderSched(); renderCoty(); renderList(); renderReel(); renderNumbers(); renderHumidor(); renderSim(); tick(); heroScroll(); if (stage && state.stage >= 3) stage.preload(1); }
 
@@ -487,13 +576,17 @@
 
   /* ---------- events ---------- */
   document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-open],[data-save],[data-jump],[data-sealed],[data-stage],[data-country],[data-pick],[data-nav],[data-close],[data-share],[data-take],#clearFilters,#copyList");
+    const t = e.target.closest("[data-open],[data-save],[data-jump],[data-sealed],[data-stage],[data-country],[data-pick],[data-nav],[data-close],[data-share],[data-take],[data-view],[data-metric],[data-cc],#dirBtn,#clearFilters,#copyList");
     if (!t) return;
     const d = t.dataset;
     if (d.save) { e.preventDefault(); toggleSave(+d.save); }
-    else if (d.open) { if ($("humidor").open) $("humidor").close(); openDrawer(+d.open); }
+    else if (d.open) { if ($("humidor").open) $("humidor").close(); openDrawer(+d.open, t); }
+    else if (d.view) { state.view = d.view; store.set("view", state.view); renderList(); }
+    else if (d.metric) { state.metric = d.metric; renderNumbers(); }
+    else if (d.cc) { state.cc = state.cc === d.cc ? "All" : d.cc; renderNumbers(); }
+    else if (t.id === "dirBtn") { state.desc = !state.desc; renderNumbers(); }
     else if (d.nav) openDrawer(+d.nav);
-    else if ("close" in d) t.closest("dialog").close();
+    else if ("close" in d) { if (t.closest("#drawer")) closeDrawer(); else t.closest("dialog").close(); }
     else if (d.share) share(+d.share);
     else if (d.take) hideTakeover(d.take);
     else if (d.sealed) toast(sealedMsg(+d.sealed));
@@ -520,16 +613,21 @@
   $("q").addEventListener("input", (e) => { state.q = e.target.value; renderList(); });
   $("sort").addEventListener("change", (e) => { state.sort = e.target.value; renderList(); });
   $("humidorBtn").addEventListener("click", () => { renderHumidor(); $("humidor").showModal(); });
-  document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (e) => { if (e.target === d) d.close(); }));
+  document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (e) => { if (e.target === d) { if (d.id === "drawer") closeDrawer(); else d.close(); } }));
   $("simPlay").addEventListener("click", () => (playTimer ? stopPlay() : playWeek()));
   $("simToggle").addEventListener("click", () => { const c = $("sim").classList.toggle("closed"); $("simToggle").setAttribute("aria-expanded", !c); });
   document.addEventListener("keydown", (e) => {
     if (!$("takeover").hidden && e.key === "Escape") { hideTakeover("close"); return; }
-    if (state.open == null || !$("drawer").open) return;
+    if (state.open == null || !$("drawer").open || e.target.matches("input, select, textarea")) return;
     const order = revealed().map((x) => x.rank), at = order.indexOf(state.open);
     if (e.key === "ArrowRight" && order[at + 1]) openDrawer(order[at + 1]);
     if (e.key === "ArrowLeft" && order[at - 1]) openDrawer(order[at - 1]);
   });
+
+  // hovering or focusing a cigar in any chart marks it in all of them
+  const mark = (rank) => { if (state.hl === rank) return; state.hl = rank; document.querySelectorAll("#numbers [data-rank]").forEach((n) => n.classList.toggle("hl", n.dataset.rank === String(rank))); $("numbers").classList.toggle("has-hl", rank != null); };
+  for (const ev of ["pointerover", "focusin"]) $("numbers").addEventListener(ev, (e) => { const n = e.target.closest && e.target.closest("[data-rank]"); if (n) mark(+n.dataset.rank); });
+  for (const ev of ["pointerout", "focusout"]) $("numbers").addEventListener(ev, (e) => { if (e.target.closest && e.target.closest("[data-rank]")) mark(null); });
 
   // scatter tooltip
   const showTip = (el) => { const c = BY_RANK.get(+el.dataset.tip), tip = $("tip"); if (!tip) return; tip.innerHTML = `<b>No. ${c.rank} · ${esc(c.name)}</b>${c.score} points · $${c.price.toFixed(2)}`; tip.style.left = `clamp(90px, ${el.dataset.x}%, calc(100% - 90px))`; tip.style.top = el.dataset.y + "%"; tip.hidden = false; };
@@ -592,7 +690,7 @@
     const uR = gl.getUniformLocation(pr, "r"), uT = gl.getUniformLocation(pr, "t");
     const size = () => { const s = Math.min(1, 720 / cv.clientWidth); cv.width = Math.max(2, Math.round(cv.clientWidth * s)); cv.height = Math.max(2, Math.round(cv.clientHeight * s)); gl.viewport(0, 0, cv.width, cv.height); };
     let visible = true, raf;
-    const frame = (ms) => { gl.uniform2f(uR, cv.width, cv.height); gl.uniform1f(uT, ms / 1000 + 40); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); if (visible && !reduced) raf = requestAnimationFrame(frame); };
+    const frame = (ms) => { if (document.documentElement.classList.contains("lite")) return; gl.uniform2f(uR, cv.width, cv.height); gl.uniform1f(uT, ms / 1000 + 40); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); if (visible && !reduced) raf = requestAnimationFrame(frame); };
     size(); frame(0);
     new ResizeObserver(() => { size(); if (reduced) frame(0); }).observe(cv);
     document.addEventListener("visibilitychange", () => { const was = visible; visible = !document.hidden; if (visible && !was && !reduced) { cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); } });
@@ -624,6 +722,19 @@
     }).catch(() => { stage = false; document.documentElement.classList.add("no-3d"); });
   }
   if (document.readyState === "complete") setTimeout(loadStage, 200); else addEventListener("load", () => setTimeout(loadStage, 200));
+
+  // Slow device guard: if the page cannot hold about 30 frames a second once everything is running,
+  // drop the costly decoration (live blur, the ambient smoke shader, the hero film, high pixel ratio).
+  function watchFrames() {
+    if (reduced || document.hidden || new URLSearchParams(location.search).has("full")) return;
+    const gaps = []; let last = 0;
+    const tick = (t) => { if (last) gaps.push(t - last); last = t; if (gaps.length < 24) requestAnimationFrame(tick); else {
+      gaps.sort((a, b) => a - b);
+      if (gaps[12] > 34) { document.documentElement.classList.add("lite"); const v = $("heroVideo"); if (v) v.pause(); if (stage) stage.lowQuality(); }
+    } };
+    requestAnimationFrame(tick);
+  }
+  addEventListener("load", () => setTimeout(watchFrames, 1800));
 
   /* ---------- hero: a scroll-linked sequence. The page scrolls normally; a tall
      track holds a sticky stage, and progress through the track drives everything. ---------- */

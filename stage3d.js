@@ -224,6 +224,9 @@ export function createStage({ cigars, reduced }) {
     setViewer(rank) { state.viewer = rank || 0; state.viewYaw = -0.35; state.viewVel = 0; if (rank) photoModel(rank); invalidate(); },
     nudge(name, dx) { if (name === "sealed") state.sealedVel += dx * 0.0016; else if (name === "viewer") state.viewVel += dx * 0.0022; invalidate(); },
     preload(rank) { photoModel(rank); },
+    lowQuality() { renderer.setPixelRatio(1); size = [0, 0]; puffs.forEach((sp, i) => { sp.visible = i % 3 === 0; }); invalidate(); },
+    setViewYaw(rad) { state.viewYaw = clamp(rad, -1.05, 1.05); state.viewVel = 0; invalidate(); },
+    viewYaw: () => state.viewYaw,
     snapshot(name) { const h = hosts[name]; if (!h) return null; active = null; h.visible = true; frame(performance.now()); return el.toDataURL("image/png"); },
   };
 }

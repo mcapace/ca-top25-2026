@@ -13,15 +13,17 @@ file with the images inlined, for emailing or opening offline.
 
 ## What it uses
 
-- **Glass:** frosted surfaces over one fixed WebGL smoke field that runs behind the whole page.
-- **WebGL:** the smoke shader, and the burn-through that reveals the Cigar of the Year.
-- **3D:** the sealed No. 1 is a three.js cigar in a glass tube (drag to turn it); daily reveals flip in.
-- **Runway:** `assets/hero.mp4` and `assets/reveal.mp4` were generated with Gen-4.5 from text prompts.
+- **Glass:** frosted surfaces over one fixed WebGL smoke field.
+- **3D:** `stage3d.js`, one three.js r160 renderer (vendored in `vendor/`) shared by the hero, the sealed No. 1, the reveal and the detail viewer. Loaded after first paint; static posters if it cannot run.
+- **Models:** released cigars are built from their side photo (`tools/profiles.py` writes the silhouettes into `data.js`); sealed cigars are procedural.
+- **Film:** `assets/hero.mp4` was generated with Runway Gen-4.5.
+
+`docs/UPGRADE-NOTES.md` covers the decisions, the checks that were run, performance status and missing assets. `tools/capture.js` regenerates `docs/media/`.
 
 ## Presenting it
 
 The pill at the bottom simulates reveal week: Before, Mon, Tue, Wed, No. 1,
-Full list, or "Play the week". `?stage=0`–`5` opens at a given stage. Moving to
+Full list, or "Play the week". `?stage=0`–`5` opens at a given stage; `?no3d` forces the static fallbacks. Moving to
 "No. 1" plays the Cigar of the Year reveal.
 
 ## What is placeholder
